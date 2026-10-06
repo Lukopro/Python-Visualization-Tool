@@ -1,4 +1,5 @@
 import tracer
+from pyvis.network import Network
 
 def update():
     snapshot = tracer.trace()
@@ -66,6 +67,18 @@ def create_accounts():
 
     return alice, bob
 
+pyvisNet = Network(directed=True)
+pyvisNet.toggle_physics(False)
+pyvisNet.add_node(0, "Alice")
+pyvisNet.add_node(1, "Bob")
+pyvisNet.add_edge(0,1)
+
+pyvisNet.show("testGraph.html", notebook=False)
+
+pyvisNet.add_node(2, "sdd")
+pyvisNet.add_edge(1,2)
+
+pyvisNet.show("testGraph.html", notebook=False)
 
 accounts = create_accounts()
 
