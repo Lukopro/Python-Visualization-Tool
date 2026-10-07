@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from pathlib import Path
+import webbrowser
+
 from databridge import *
 
 from pyvis.network import Network
@@ -92,7 +95,41 @@ class RuntimeVisualizer:
         self._add_global_frame(snapshot.global_frame)
         self._add_function_frames(snapshot.function_frames)
 
-        self.net.show("runtime.html", notebook=False)
+        self.net.write_html("runtime.html", notebook=False, open_browser=False)
+
+        html = Path("runtime.html").read_text()
+
+        html = html.replace("</body>",
+                                """
+                                    <button
+                                        onclick="
+                                            const enabled = network.physics.options.enabled;
+                                            network.setOptions({ physics: { enabled: !enabled } });
+                                            this.textContent = !enabled ? 'Physics: ON' : 'Physics: OFF';
+                                        "
+                                        style="
+                                            position: fixed;
+                                            top: 16px;
+                                            left: 10px;
+                                            z-index: 9999;
+                                            padding: 8px 14px;
+                                            border: none;
+                                            border-radius: 5px;
+                                            background: #485775;
+                                            color: white;
+                                            font-size: 14px;
+                                            cursor: pointer;
+                                        "
+                                    >
+                                        Physics: ON
+                                    </button>
+                                    </body>
+                                """
+                            )
+
+        Path("runtime.html").write_text(html)
+
+        webbrowser.open("runtime.html")
 
     def _add_objects(self, objects: dict[ObjectID, Object]) -> None:
         # First, nodes
