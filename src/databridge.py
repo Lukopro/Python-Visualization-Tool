@@ -1,7 +1,11 @@
 from dataclasses import dataclass, field
-from typing import NewType
 
-ObjectID = NewType("ObjectID", int)
+@dataclass(frozen=True)
+class ObjectID:
+    value: int
+
+    def __str__(self) -> str:
+        return str(self.value)
 
 InlineValue = int | str | bool | float | None # | bytes | complex
 Value = InlineValue | ObjectID
@@ -34,13 +38,15 @@ Object = SequenceObject | MappedObject | FunctionObject | UnsupportedObject
 class GlobalFrame:
     bindings: dict[str, Value] = field(default_factory=dict)
 
-UNSET = object() # Sentinel for unset return value
+class Unset:
+    pass
+UNSET = Unset() # Sentinel for unset return value
 
 @dataclass
 class FunctionFrame:
     name: str
 
-    return_value: Value | object = UNSET
+    return_value: Value | Unset = UNSET
     arguments: dict[str, Value] = field(default_factory=dict)
     bindings: dict[str, Value] = field(default_factory=dict)
 
@@ -51,7 +57,7 @@ class RuntimeSnapshot:
     global_frame: GlobalFrame = field(default_factory=GlobalFrame)
     function_frames: list[FunctionFrame] = field(default_factory=list)
 
-    def __str__(self):
+    def __str__(self) -> str:
         lines = ["RuntimeSnapshot"]
 
         lines.append("  Global:")
