@@ -11,8 +11,12 @@ def trace() -> RuntimeSnapshot:
 
     frame = sys._getframe(2)
 
+    source_file = frame.f_code.co_filename
+
     frames = []
     while frame is not None:
+        if frame.f_code.co_filename != source_file:
+            break
         frames.append(frame)
         frame = frame.f_back
 
