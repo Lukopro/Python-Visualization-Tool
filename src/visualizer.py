@@ -20,6 +20,8 @@ class RuntimeVisualizer:
 
     def __init__(self, *, height: str = "900px", width: str = "100%",
                  directed: bool = True) -> None:
+        self._inline_counter = 0
+
         self.net = Network(height=height, width=width, directed=directed,
                            bgcolor="#ffffff", font_color="#111827")
 
@@ -191,7 +193,7 @@ class RuntimeVisualizer:
             return
 
         # Inline value
-        target = self._inline_node_id(value)
+        target = self._inline_node_id()
 
         if not self._has_node(target):
             self.net.add_node(
@@ -256,10 +258,10 @@ class RuntimeVisualizer:
     def _function_frame_node_id(index: int) -> str:
         return f"frame:function:{index}"
 
-    @staticmethod
-    def _inline_node_id(value: InlineValue) -> str:
-        # Type included to distinguish int and bool
-        return f"inline:{type(value).__name__}:{repr(value)}"
+    def _inline_node_id(self) -> str:
+        node_id = f"inline:{self._inline_counter}"
+        self._inline_counter += 1
+        return node_id
 
     @staticmethod
     def _format_value(value: Value) -> str:
