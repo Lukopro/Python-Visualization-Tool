@@ -78,7 +78,7 @@ bob_summary = summarize(bob)
 alice_total = total_transactions(alice)
 bob_total = total_transactions(bob)
 
-funny_dict = { alice: alice_summary, bob: bob_summary }
+# funny_dict = { alice: alice_summary, bob: bob_summary }
 
 print(alice_summary)
 print(bob_summary)
