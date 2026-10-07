@@ -99,6 +99,8 @@ class RuntimeVisualizer:
 
         html = Path("runtime.html").read_text()
 
+        # Add button to toggle physics
+        # Physics are needed to orient graph, but graphs may not fully settle without turning them off
         html = html.replace("</body>",
                                 """
                                     <button
