@@ -79,6 +79,7 @@ alice_total = total_transactions(alice)
 bob_total = total_transactions(bob)
 
 # funny_dict = { alice: alice_summary, bob: bob_summary }
+testList = [1, 2, 3, 4, 5, 6]
 
 print(alice_summary)
 print(bob_summary)
