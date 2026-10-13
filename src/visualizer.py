@@ -273,7 +273,8 @@ class RuntimeVisualizer:
         for index, frame in enumerate(frames):
             node_id = self._function_frame_node_id(index)
 
-            lines = self._format_mapping_lines(list(frame.bindings.items()))
+            lines = self._format_mapping_lines(list(
+                frame.arguments.items()) + list(frame.bindings.items()))
 
             label = f"{frame.name}"
             if lines:
