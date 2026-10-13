@@ -104,9 +104,17 @@ class RuntimeVisualizer:
                                 """
                                     <button
                                         onclick="
-                                            const enabled = network.physics.options.enabled;
-                                            network.setOptions({ physics: { enabled: !enabled } });
-                                            this.textContent = !enabled ? 'Physics: ON' : 'Physics: OFF';
+                                            const newEnabled = !network.physics.options.enabled;
+                                            network.setOptions({ 
+                                                physics: { enabled: newEnabled },
+                                                edges: {
+                                                    smooth: {
+                                                        enabled: true,
+                                                        type: newEnabled ? 'dynamic' : 'continuous'
+                                                    }
+                                                }
+                                            });
+                                            this.textContent = newEnabled ? 'Physics: ON' : 'Physics: OFF';
                                         "
                                         style="
                                             position: fixed;
