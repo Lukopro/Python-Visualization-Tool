@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 import webbrowser
 
@@ -44,9 +42,9 @@ class RuntimeVisualizer:
                     "solver": "forceAtlas2Based",
                     
                     "forceAtlas2Based": {
-                        "gravitationalConstant": -40,
+                        "gravitationalConstant": -35,
                         "centralGravity": 0.01,
-                        "springLength": 50,
+                        "springLength": 60,
                         "springConstant": 0.04,
                         "damping": 0.4,
                         "avoidOverlap": 1
@@ -157,11 +155,19 @@ class RuntimeVisualizer:
     def _add_sequence_node(self, object_id: ObjectID, obj: SequenceObject) -> None:
         node_id = self._object_node_id(object_id)
 
+        lines = self._format_mapping_lines(list(enumerate(obj.value)))
+
+        label = f"{obj.type}"
+        if lines:
+            label +="\n\n" + "\n".join(lines)
+        else:
+            label += "\n(empty)"
+
         self.net.add_node(
             node_id,
-            label=f"{obj.type}\n#{object_id}",
+            label=label,
             title=f"{self._escape(obj.type)}\nObjectID = {object_id}\nlength = {len(obj.value)}",
-            shape="ellipse",
+            shape="box",
             color=self.COLORS["sequence"],
             font={"color": "#FFFFFF"}
         )
@@ -169,11 +175,20 @@ class RuntimeVisualizer:
     def _add_mapped_node(self, object_id: ObjectID, obj: MappedObject) -> None:
         node_id = self._object_node_id(object_id)
 
+        lines = self._format_mapping_lines(list(obj.value.items()))
+        print(lines)
+
+        label = f"{obj.type}"
+        if lines:
+            label += "\n\n" + "\n".join(lines)
+        else:
+            label += "\n(empty)"
+
         self.net.add_node(
             node_id,
-            label=f"{obj.type}\n#{object_id}",
+            label=label,
             title=f"{self._escape(obj.type)}\nObjectID = {object_id}\nsize = {len(obj.value)}",
-            shape="database",
+            shape="box",
             color=self.COLORS["mapping"],
             font={"color": "#FFFFFF"}
         )
@@ -185,14 +200,14 @@ class RuntimeVisualizer:
 
         self.net.add_node(
             node_id,
-            label=f"function {obj.name}\n#{object_id}",
+            label=f"function: {obj.name}",
             title=(
-                "Function\n"
+                f"Function #{object_id}\n"
                 f"name = {self._escape(obj.name)}\n"
                 f"parameters = {self._escape(parameters)}\n"
                 f"ObjectID = {object_id}"
             ),
-            shape="box",
+            shape="ellipse",
             color=self.COLORS["function"],
             font={"color": "#111827"}
         )
@@ -202,9 +217,9 @@ class RuntimeVisualizer:
 
         self.net.add_node(
             node_id,
-            label=f"{obj.type}\n#{object_id}",
+            label=f"{obj.type}",
             title=f"Unsupported Object\ntype = {self._escape(obj.type)}\nObjectID = {object_id}",
-            shape="box",
+            shape="ellipse",
             color=self.COLORS["unsupported"],
             font={"color": "#FFFFFF"}
         )
@@ -223,29 +238,14 @@ class RuntimeVisualizer:
 
     def _add_value_edge(self, *, source: str, value: Value, label: str,
                         kind: str = "value", color: str | None = None) -> None:
-        if isinstance(value, ObjectID):
-            target = self._object_node_id(value)
 
-            self.net.add_edge(source, target, label=label, color=color,
-                              title=f"{self._escape(label)} → Object #{value}")
-
+        if not isinstance(value, ObjectID):
             return
 
-        # Inline value
-        target = self._inline_node_id()
-
-        if not self._has_node(target):
-            self.net.add_node(
-                target,
-                label=self._format_inline_value(value),
-                title=f"Inline value\n{self._format_inline_value(value)}",
-                shape="box",
-                color=self.COLORS["inline"],
-                font={"color": "#FFFFFF"}
-            )
+        target = self._object_node_id(value)
 
         self.net.add_edge(source, target, label=label, color=color,
-                title=f"{kind}: {self._format_inline_value(value)}", dashes=True, length=40)
+                          title=f"{self._escape(label)} → Object #{value}")
 
     def _add_mapping_entry(self, *, source: str, key: Value, value: Value) -> None:
         key_text = self._format_value(key)
@@ -255,7 +255,7 @@ class RuntimeVisualizer:
     def _add_global_frame(self, frame: GlobalFrame) -> None:
         node_id = "frame:global"
 
-        self.net.add_node(node_id, label="Global Frame", title="Global Frame",  shape="box",
+        self.net.add_node(node_id, label="Global Frame", title="Global Frame",  shape="database",
                 color=self.COLORS["global"], font={"color": "#FFFFFF", "size": 16}, margin=12)
 
         for name, value in frame.bindings.items():
@@ -267,9 +267,9 @@ class RuntimeVisualizer:
 
             self.net.add_node(
                 node_id,
-                label=f"Frame; {frame.name}",
+                label=f"{frame.name}",
                 title=f"Function Frame\nname = {self._escape(frame.name)}",
-                shape="box",
+                shape="database",
                 color=self.COLORS["frame"],
                 font={"color": "#FFFFFF", "size": 16},
                 margin=12
@@ -303,9 +303,9 @@ class RuntimeVisualizer:
         return node_id
 
     @staticmethod
-    def _format_value(value: Value) -> str:
+    def _format_value(value: Value, object_label: str="Object") -> str:
         if isinstance(value, ObjectID):
-            return f"Object #{value}"
+            return object_label # f"Object #{value}"
 
         return RuntimeVisualizer._format_inline_value(value)
 
@@ -321,6 +321,19 @@ class RuntimeVisualizer:
             return "True" if value else "False"
 
         return str(value)
+
+    @staticmethod
+    def _format_mapping_lines(items: list[tuple[Value, Value]]) -> list[str]:
+        keys = [RuntimeVisualizer._format_value(key) for key, _ in items]
+        max_key_width = max((len(key) for key in keys), default=0)\
+
+        values = [RuntimeVisualizer._format_value(value, "") for _, value in items]
+        max_value_width = max((len(value) for value in values), default=0)
+
+        return [
+            f"{key:>{max_key_width}}: {value:<{max_value_width}}"
+            for key, value in zip(keys, values)
+        ]
 
     def _has_node(self, node_id: str) -> bool:
         return any(node["id"] == node_id for node in self.net.nodes)
