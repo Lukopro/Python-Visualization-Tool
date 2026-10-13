@@ -176,7 +176,6 @@ class RuntimeVisualizer:
         node_id = self._object_node_id(object_id)
 
         lines = self._format_mapping_lines(list(obj.value.items()))
-        print(lines)
 
         label = f"{obj.type}"
         if lines:
@@ -237,7 +236,7 @@ class RuntimeVisualizer:
         # FunctionObject and UnsupportedObject don't contain references
 
     def _add_value_edge(self, *, source: str, value: Value, label: str,
-                        kind: str = "value", color: str | None = None) -> None:
+                        color: str | None = None) -> None:
 
         if not isinstance(value, ObjectID):
             return
@@ -250,12 +249,20 @@ class RuntimeVisualizer:
     def _add_mapping_entry(self, *, source: str, key: Value, value: Value) -> None:
         key_text = self._format_value(key)
 
-        self._add_value_edge(source=source, value=value, label=f"[{key_text}]", kind="mapping")
+        self._add_value_edge(source=source, value=value, label=f"[{key_text}]")
 
     def _add_global_frame(self, frame: GlobalFrame) -> None:
         node_id = "frame:global"
 
-        self.net.add_node(node_id, label="Global Frame", title="Global Frame",  shape="database",
+        lines = self._format_mapping_lines(list(frame.bindings.items()))
+
+        label = f"Global Frame"
+        if lines:
+            label += "\n\n" + "\n".join(lines)
+        else:
+            label += "\n(empty)"
+
+        self.net.add_node(node_id, label=label, title="Global Frame",  shape="box",
                 color=self.COLORS["global"], font={"color": "#FFFFFF", "size": 16}, margin=12)
 
         for name, value in frame.bindings.items():
@@ -265,11 +272,19 @@ class RuntimeVisualizer:
         for index, frame in enumerate(frames):
             node_id = self._function_frame_node_id(index)
 
+            lines = self._format_mapping_lines(list(frame.bindings.items()))
+
+            label = f"{frame.name}"
+            if lines:
+                label += "\n\n" + "\n".join(lines)
+            else:
+                label += "\n(empty)"
+
             self.net.add_node(
                 node_id,
-                label=f"{frame.name}",
+                label=label,
                 title=f"Function Frame\nname = {self._escape(frame.name)}",
-                shape="database",
+                shape="box",
                 color=self.COLORS["frame"],
                 font={"color": "#FFFFFF", "size": 16},
                 margin=12
@@ -283,11 +298,11 @@ class RuntimeVisualizer:
 
             if not isinstance(frame.return_value, Unset):
                 self._add_value_edge(source=node_id, value=frame.return_value,
-                                    label="return", kind="return", color="#DC2626")
+                                    label="return", color="#DC2626")
 
 
     def _add_binding(self, *, source: str, name: str, value: Value, kind: str = "binding") -> None:
-        self._add_value_edge(source=source, value=value, label=name, kind=kind)
+        self._add_value_edge(source=source, value=value, label=name)
 
     @staticmethod
     def _object_node_id(object_id: ObjectID) -> str:
