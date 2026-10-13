@@ -21,6 +21,27 @@ class BankAccount:
             return True
         return False
 
+class DogBankAccount(BankAccount):
+
+    def __init__(self, owner, balance):
+        BankAccount.__init__(self, owner, balance)
+
+    def bark(self):
+        print(f"{self.owner} says woof")
+        main.update()
+        print()
+
+class LinkedListNode():
+    def __init__(self, value):
+        self.value = value
+        self.next = None
+
+    def append(self, value):
+        cur_node = self
+        while cur_node.next is not None:
+            cur_node = cur_node.next
+            main.update()
+        cur_node.next = LinkedListNode(value)
 
 def total_transactions(account):
     total = 0
@@ -43,15 +64,21 @@ def summarize(account):
 transferCount = 0
 def transfer(source, destination, amount):
     global transferCount
+    transfer2 = transferCount
+
+    def someOtherFunc():
+        nonlocal transfer2
+        transfer2 += 1
+        main.update()
+
     if source.withdraw(amount):
         destination.deposit(amount)
         transferCount += 1
+        someOtherFunc()
         main.update()
-        print("yes")
         return True
 
     return False
-
 
 def create_accounts():
     alice = BankAccount("Alice", 100)
@@ -66,6 +93,16 @@ def create_accounts():
 
     return alice, bob
 
+
+headNode = LinkedListNode(0)
+headNode.append(10)
+headNode.append(20)
+headNode.append(30)
+headNode.append(40)
+headNode.append(50)
+
+clifford = DogBankAccount("Clifford", 100)
+clifford.bark()
 
 accounts = create_accounts()
 

@@ -66,7 +66,7 @@ class RuntimeVisualizer:
                     
                     "smooth": {
                         "enabled": true,
-                        "type": "dynamic"
+                        "type": "continuous"
                     },
                     
                     "font": {
