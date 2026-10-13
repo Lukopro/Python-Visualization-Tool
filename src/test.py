@@ -40,10 +40,14 @@ def summarize(account):
 
     return history
 
-
+transferCount = 0
 def transfer(source, destination, amount):
+    global transferCount
     if source.withdraw(amount):
         destination.deposit(amount)
+        transferCount += 1
+        main.update()
+        print("yes")
         return True
 
     return False
@@ -58,7 +62,7 @@ def create_accounts():
 
     bob.deposit(40)
 
-    #main.update()
+    main.update()
 
     return alice, bob
 
@@ -78,6 +82,9 @@ bob_summary = summarize(bob)
 alice_total = total_transactions(alice)
 bob_total = total_transactions(bob)
 
+testList = [1,2,3,4,5,6,alice]
+testList2 = ['abc','123','xyz']
+
 # funny_dict = { alice: alice_summary, bob: bob_summary }
 
 print(alice_summary)
@@ -85,4 +92,4 @@ print(bob_summary)
 print(alice_total)
 print(bob_total)
 
-main.update()
+main.update(renderFrames=False)

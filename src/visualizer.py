@@ -88,10 +88,11 @@ class RuntimeVisualizer:
             """
         )
 
-    def visualize(self, snapshot: RuntimeSnapshot) -> None:
+    def visualize(self, snapshot: RuntimeSnapshot, renderFrames: bool=True) -> None:
         self._add_objects(snapshot.objects)
-        self._add_global_frame(snapshot.global_frame)
-        self._add_function_frames(snapshot.function_frames)
+        if renderFrames:
+            self._add_global_frame(snapshot.global_frame)
+            self._add_function_frames(snapshot.function_frames)
 
         self.net.write_html("runtime.html", notebook=False, open_browser=False)
 

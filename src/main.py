@@ -1,7 +1,7 @@
 import tracer
 from visualizer import RuntimeVisualizer
 
-def update():
+def update(renderFrames: bool=True):
     snapshot = tracer.trace()
     # print(snapshot)
-    RuntimeVisualizer().visualize(snapshot)
+    RuntimeVisualizer().visualize(snapshot, renderFrames=renderFrames)
