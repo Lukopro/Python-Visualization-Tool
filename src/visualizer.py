@@ -39,10 +39,10 @@ class RuntimeVisualizer:
                     "solver": "forceAtlas2Based",
                     
                     "forceAtlas2Based": {
-                        "gravitationalConstant": -35,
+                        "gravitationalConstant": -50,
                         "centralGravity": 0.01,
                         "springLength": 60,
-                        "springConstant": 0.04,
+                        "springConstant": 0.01,
                         "damping": 0.4,
                         "avoidOverlap": 1
                     },
@@ -63,7 +63,7 @@ class RuntimeVisualizer:
                     
                     "smooth": {
                         "enabled": true,
-                        "type": "continuous"
+                        "type": "dynamic"
                     },
                     
                     "font": {
