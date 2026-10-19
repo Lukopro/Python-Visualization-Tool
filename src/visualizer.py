@@ -1,6 +1,3 @@
-from pathlib import Path
-import webbrowser
-
 from databridge import *
 
 from pyvis.network import Network
@@ -88,57 +85,51 @@ class RuntimeVisualizer:
             """
         )
 
-    def visualize(self, snapshot: RuntimeSnapshot, renderFrames: bool=True) -> None:
+    def visualize(self, snapshot: RuntimeSnapshot, renderFrames: bool=True) -> str:
         self._add_objects(snapshot.objects)
         if renderFrames:
             self._add_global_frame(snapshot.global_frame)
             self._add_function_frames(snapshot.function_frames)
 
-        self.net.write_html("runtime.html", notebook=False, open_browser=False)
+        html = self.net.generate_html()
 
-        html = Path("runtime.html").read_text()
-
-        # Add button to toggle physics
-        # Physics are needed to orient graph, but graphs may not fully settle without turning them off
         html = html.replace("</body>",
-                                """
-                                    <button
-                                        onclick="
-                                            const newEnabled = !network.physics.options.enabled;
-                                            network.setOptions({ 
-                                                physics: { enabled: newEnabled },
-                                                edges: {
-                                                    smooth: {
-                                                        enabled: true,
-                                                        type: newEnabled ? 'dynamic' : 'continuous'
-                                                    }
+                            """
+                                <button
+                                    onclick="
+                                        const newEnabled = !network.physics.options.enabled;
+                                        network.setOptions({ 
+                                            physics: { enabled: newEnabled },
+                                            edges: {
+                                                smooth: {
+                                                    enabled: true,
+                                                    type: newEnabled ? 'dynamic' : 'continuous'
                                                 }
-                                            });
-                                            this.textContent = newEnabled ? 'Physics: ON' : 'Physics: OFF';
-                                        "
-                                        style="
-                                            position: fixed;
-                                            top: 16px;
-                                            left: 10px;
-                                            z-index: 9999;
-                                            padding: 8px 14px;
-                                            border: none;
-                                            border-radius: 5px;
-                                            background: #485775;
-                                            color: white;
-                                            font-size: 14px;
-                                            cursor: pointer;
-                                        "
-                                    >
-                                        Physics: ON
-                                    </button>
-                                    </body>
-                                """
+                                            }
+                                        });
+                                        this.textContent = newEnabled ? 'Physics: ON' : 'Physics: OFF';
+                                    "
+                                    style="
+                                        position: fixed;
+                                        top: 16px;
+                                        left: 10px;
+                                        z-index: 9999;
+                                        padding: 8px 14px;
+                                        border: none;
+                                        border-radius: 5px;
+                                        background: #485775;
+                                        color: white;
+                                        font-size: 14px;
+                                        cursor: pointer;
+                                    "
+                                >
+                                    Physics: ON
+                                </button>
+                                </body>
+                            """
                             )
 
-        Path("runtime.html").write_text(html)
-
-        webbrowser.open("runtime.html")
+        return html
 
     def _add_objects(self, objects: dict[ObjectID, Object]) -> None:
         # First, nodes
