@@ -8,6 +8,8 @@ import threading
 _process = None
 _lock = threading.Lock()
 
+_POLL_INTERVAL = 150
+
 def start() -> None:
     global _process
 
@@ -18,13 +20,27 @@ def start() -> None:
         _process = subprocess.Popen(
             [sys.executable, os.path.abspath(__file__), "--html-viewer-worker"],
             stdin=subprocess.PIPE,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL, # Discard errors
             text=True,
             encoding="utf-8",
             bufsize=1,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
         )
+
+        try:
+            # Make sure server starts before draw() is called
+            assert _process.stdout is not None
+            ready = _process.stdout.readline().strip()
+
+            if not ready.startswith("READY "):
+                raise RuntimeError(f"Viewer failed to start. Worker exit code: {_process.poll()}")
+
+            _process.stdout.close()
+
+        except BaseException:
+            _terminate()
+            raise
 
 def draw(html: str) -> None:
     with _lock:
@@ -39,6 +55,24 @@ def draw(html: str) -> None:
             _process.stdin.flush()
         except (BrokenPipeError, OSError) as e:
             raise RuntimeError("Viewer has closed.") from e
+
+def close() -> None:
+    with _lock:
+        _terminate()
+
+def _terminate() -> None:
+    global _process
+    if _process is None:
+        return
+    if _process.poll() is None:
+        # Termination is fine, it's not graceful but the OS cleans up resources if needed
+        _process.terminate()
+        try:
+            _process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            _process.kill()
+            _process.wait()
+    _process = None
 
 def _run_worker():
     import webview
@@ -62,48 +96,56 @@ def _run_worker():
                 return
 
             if self.path == "/":
-                page = b"""<!doctype html>
+                page = f"""<!doctype html>
                 <html>
                     <head>
                     <meta charset="utf-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1">
-                    <style>
-                        html, body, iframe {
+                        <style>
+                        html, body, iframe {{
                             width: 100%;
                             height: 100%;
                             margin: 0;
                             border: 0;
                             overflow: hidden;
-                        }
-                    </style>
+                        }}
+                        </style>
                     </head>
                     
                     <body>
                     <iframe id="view" title="Graphics viewer"></iframe>
                         <script>
                         let previous = null;
+                        let updating = false;
                         
-                        async function refresh() {
-                            try {
-                                const response = await fetch('/state', {cache: 'no-store'});
-                                if (!response.ok) return;
+                        async function refresh() {{
+                            if (updating) return;
+                            updating = true;
+                            
+                            try {{
+                                const response = await fetch('/state', {{cache: 'no-store'}});
+                                if (!response.ok) {{
+                                    throw new Error('Snapshot request failed: ' + response.status);
+                                }}
                                 
                                 const html = await response.json();
-                                if (html !== previous) {
+                                if (html !== previous) {{
                                     document.getElementById('view').srcdoc = html;
                                     previous = html;
-                                }
-                            } catch (e) {
+                                }}
+                            }} catch (e) {{
                                 console.error('HTML viewer update failed:', e);
-                            }
-                        }
+                            }} finally {{
+                                updating = false;
+                                setTimeout(refresh, {_POLL_INTERVAL});
+                            }}
+                        }}
                         
                         refresh();
-                        setInterval(refresh, 150);
                         </script>
                     </body>
                 </html>
-                """
+                """.encode("utf-8")
 
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -113,9 +155,6 @@ def _run_worker():
                 return
 
             self.send_error(404)
-
-        def log_message(self, format, *args):
-            pass
 
     def read_updates():
         for line in sys.stdin:
@@ -132,19 +171,20 @@ def _run_worker():
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     server.daemon_threads = True
 
-    threading.Thread(target=server.serve_forever, daemon=True).start()
+    threading.Thread(target=server.serve_forever, name="html-viewer-http", daemon=True).start()
 
-    threading.Thread(target=read_updates, daemon=True).start()
+    print(f"READY {server.server_port}", flush=True)
 
-    window = webview.create_window(
-        "Graphics viewer",
-        f"http://127.0.0.1:{server.server_port}/",
-        width = 960, height = 960, min_size = (360, 360)
-    )
-
-    window.events.closed += lambda *_: stop.set()
+    threading.Thread(target=read_updates, name="html-viewer-input", daemon=True).start()
 
     try:
+        window = webview.create_window(
+            "Graphics viewer",
+            f"http://127.0.0.1:{server.server_port}/",
+            width=960, height=960, min_size=(360, 360)
+        )
+
+        window.events.closed += lambda *_: stop.set()
         webview.start()
     finally:
         stop.set()
