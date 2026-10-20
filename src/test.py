@@ -40,7 +40,7 @@ class LinkedListNode():
         cur_node = self
         while cur_node.next is not None:
             cur_node = cur_node.next
-            main.update()
+            #main.update()
         cur_node.next = LinkedListNode(value)
 
 def total_transactions(account):
@@ -69,13 +69,13 @@ def transfer(source, destination, amount):
     def someOtherFunc():
         nonlocal transfer2
         transfer2 += 1
-        main.update()
+        #main.update()
 
     if source.withdraw(amount):
         destination.deposit(amount)
         transferCount += 1
         someOtherFunc()
-        main.update()
+        #main.update()
         return True
 
     return False
@@ -89,7 +89,7 @@ def create_accounts():
 
     bob.deposit(40)
 
-    main.update()
+    #main.update()
 
     return alice, bob
 
