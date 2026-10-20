@@ -151,8 +151,28 @@ class RuntimeVisualizer:
                             (function () {{
                                 const anchorSpecs = {json.dumps(self._anchor_specs)}
                                 
+                                const anchorsByParent = new Map();
+                                
+                                for (const anchor of anchorSpecs) {{
+                                    if (!anchorsByParent.has(anchor.parent)) {{
+                                        anchorsByParent.set(anchor.parent, []);
+                                    }}
+                                    anchorsByParent.get(anchor.parent).push(anchor.id);
+                                }}
+                                
+                                function getAnchorIds(parentIds) {{
+                                    return [...new Set(
+                                        parentIds.flatMap(
+                                            parent => anchorsByParent.get(parent) || []
+                                        )
+                                    )];
+                                }}
+                                
                                 function syncAnchors() {{
-                                    if (typeof network === "undefined" || !network.body) return;
+                                    if (typeof network === "undefined" || !network.body) {{
+                                        requestAnimationFrame(syncAnchors);
+                                        return;
+                                    }}
                                     
                                     const parentIds = [...new Set(anchorSpecs.map(a => a.parent))];
                                     
@@ -176,6 +196,100 @@ class RuntimeVisualizer:
                                     
                                     requestAnimationFrame(syncAnchors);
                                 }}
+                                
+                                let syncingSelection = false;
+
+                                const userSelected = new Set();
+                                const userSelectedEdges = new Set();
+                                
+                                const hoveredParents = new Set();
+                                
+                                let observedSelection = new Set(network.getSelectedNodes());
+                                
+                                function syncSelection() {{
+                                    const requiredParents = new Set(hoveredParents);
+                                    
+                                    for (const id of userSelected) {{
+                                        if (anchorsByParent.has(id)) {{
+                                            requiredParents.add(id);
+                                        }}
+                                    }}
+                                    
+                                    const desired = new Set(userSelected);
+                                    
+                                    for (const id of getAnchorIds([...requiredParents])) {{
+                                        desired.add(id);
+                                    }}
+                                    
+                                    syncingSelection = true;
+                                    try {{
+                                        network.setSelection({{
+                                            nodes: [...desired],
+                                            edges: [...userSelectedEdges]
+                                        }});
+                                        
+                                        observedSelection = new Set(desired);
+                                    }} finally {{
+                                        syncingSelection = false;
+                                    }}
+                                }}
+                                
+                                function handleUserSelectionChange(params) {{
+                                    if (syncingSelection) return;
+                                    
+                                    const current = new Set(params.nodes);
+                                    
+                                    for (const id of current) {{
+                                        if (!observedSelection.has(id)) {{
+                                            userSelected.add(id);
+                                        }}
+                                    }}
+                                    
+                                    for (const id of observedSelection) {{
+                                        if (!current.has(id)) {{
+                                            userSelected.delete(id);
+                                        }}
+                                    }}
+                                    
+                                    observedSelection = current;
+                                    syncSelection();
+                                }}
+                                
+                                network.on("selectNode", handleUserSelectionChange);
+                                network.on("deselectNode", handleUserSelectionChange);
+                                
+                                network.on("hoverNode", function(params) {{
+                                    const parent = params.node;
+                                    if (!anchorsByParent.has(parent)) return;
+                                    
+                                    hoveredParents.add(parent);
+                                    syncSelection();
+                                }});
+                                
+                                network.on("blurNode", function(params) {{
+                                    hoveredParents.delete(params.node);
+                                    syncSelection();
+                                }});
+                                
+                                network.on("selectEdge", function(params) {{
+                                    if (syncingSelection) return;
+                                    
+                                    userSelectedEdges.clear();
+                                    
+                                    for (const id of network.getSelectedEdges()) {{
+                                        userSelectedEdges.add(id);
+                                    }}
+                                }});
+                                
+                                network.on("deselectEdge", function(params) {{
+                                    if (syncingSelection) return;
+                                    
+                                    userSelectedEdges.clear();
+                                    
+                                    for (const id of network.getSelectedEdges()) {{
+                                        userSelectedEdges.add(id);
+                                    }}
+                                }});
                                 
                                 // Start continuous synchronization immediately
                                 requestAnimationFrame(syncAnchors);
