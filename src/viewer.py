@@ -62,10 +62,17 @@ def close() -> None:
 
 def _terminate() -> None:
     global _process
+
     if _process is None:
         return
+
     if _process.poll() is None:
-        # Termination is fine, it's not graceful but the OS cleans up resources if needed
+
+        if _process.stdin is not None:
+            _process.stdin.write(json.dumps(None) + "\n")
+            _process.stdin.flush()
+            _process.stdin.close()
+
         _process.terminate()
         try:
             _process.wait(timeout=2)
@@ -157,17 +164,22 @@ def _run_worker():
             self.send_error(404)
 
     def read_updates():
-        for line in sys.stdin:
-            if stop.is_set():
-                break
-            try:
-                html = json.loads(line)
+        try:
+            for line in sys.stdin:
+                try:
+                    html = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                if html is None:
+                    stop.set()
+                    break
+
                 if isinstance(html, str):
                     with state_lock:
                         state["html"] = html
-            except json.JSONDecodeError:
-                continue
-
+        finally:
+            stop.set()
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     server.daemon_threads = True
 
