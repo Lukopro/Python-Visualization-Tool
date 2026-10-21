@@ -110,17 +110,20 @@ alice = accounts[0]
 bob = accounts[1]
 
 shared_history = alice.transactions
+main.configure(renderFrames=False)
 
 transfer(alice, bob, 50)
 
 alice_summary = summarize(alice)
 bob_summary = summarize(bob)
+main.update()
 
 alice_total = total_transactions(alice)
 bob_total = total_transactions(bob)
 
 testList = [1,2,3,4,5,6,alice]
 testList2 = ['abc','123','xyz']
+main.update()
 
 # funny_dict = { alice: alice_summary, bob: bob_summary }
 
@@ -129,4 +132,5 @@ print(bob_summary)
 print(alice_total)
 print(bob_total)
 
-main.update(renderFrames=False)
+main.update()
+

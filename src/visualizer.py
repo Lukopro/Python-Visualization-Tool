@@ -2,6 +2,49 @@ from databridge import *
 
 from pyvis.network import Network
 
+
+# this class bundles configuration options to be used by visualizer
+class VisualizerConfig:
+    configOpts = {}
+
+    def __init__(self):
+        self.configOpts['renderFrames'] = True
+        self.configOpts['height'] = "900px"
+        self.configOpts['width'] = "100%"
+        self.configOpts['directed'] = True
+        self.configOpts['bgcolor'] = "#ffffff"
+        self.configOpts['font_color'] = "#111827"
+        # more config options initialized here
+
+    # used to update configuration settings
+    # ex. configure(renderFrames=True) would set renderFrames to True
+    def update(self, renderFrames: bool=None, height: str=None, width: str=None,
+               directed: bool=None, bgcolor: str=None, font_color: str=None):
+        if renderFrames is not None:
+            self.configOpts['renderFrames'] = renderFrames
+        if height is not None:
+            self.configOpts['height'] = height
+        if width is not None:
+            self.configOpts['width'] = width
+        if directed is not None:
+            self.configOpts['directed'] = directed
+        if bgcolor is not None:
+            self.configOpts['bgcolor'] = bgcolor
+        if font_color is not None:
+            self.configOpts['font_color'] = font_color
+        # this pattern can repeat for as many configurations we have
+
+    # getter function for visualizer to read specific config options
+    def get_opt(self, opt):
+        return self.configOpts[opt]
+    # returns formatted string of all configuration options
+    def __str__(self):
+        resultStr = ""
+        for opt, val in self.configOpts.items():
+            resultStr += f"{opt<20}: {val}\n"
+        return resultStr
+
+
 class RuntimeVisualizer:
 
     COLORS = {
@@ -16,14 +59,33 @@ class RuntimeVisualizer:
         "inline": "#D9D9D9",
     }
 
-    def __init__(self, *, height: str = "900px", width: str = "100%",
-                 directed: bool = True) -> None:
+    def __init__(self) -> None:
+
+        # configuration object, use this object when referencing user-set options
+        self.config = VisualizerConfig()
+
         self._inline_counter = 0
 
-        self.net = Network(height=height, width=width, directed=directed,
-                           bgcolor="#ffffff", font_color="#111827")
+        # initialize the network
+        self.net = self.net_init()
 
-        self.net.set_options(
+    # updates the visualizer's config object
+    def update_config(self, renderFrames: bool=None, height: str=None, width: str=None,
+                      directed: bool=None, bgcolor: str=None, font_color: str=None):
+        self.config.update(renderFrames=renderFrames, height=height, width=width,
+                           directed=directed, bgcolor=bgcolor, font_color=font_color)
+
+    # initialize network
+    # call before redrawing as well to get clean slate
+    def net_init(self):
+
+        net = Network(height=self.config.get_opt('height'),
+                      width=self.config.get_opt('width'),
+                      directed=self.config.get_opt('directed'),
+                      bgcolor=self.config.get_opt('bgcolor'),
+                      font_color=self.config.get_opt('font_color'))
+
+        net.set_options(
             """
             {
                 "interaction": {
@@ -33,11 +95,11 @@ class RuntimeVisualizer:
                     "multiselect": false,
                     "selectConnectedEdges": true
                 },
-                
+
                 "physics": {
                     "enabled": true,
                     "solver": "forceAtlas2Based",
-                    
+
                     "forceAtlas2Based": {
                         "gravitationalConstant": -50,
                         "centralGravity": 0.01,
@@ -46,13 +108,13 @@ class RuntimeVisualizer:
                         "damping": 0.4,
                         "avoidOverlap": 1
                     },
-                    
+
                     "stabilization": {
                         "enabled": true,
                         "iterations": 500
                     }
                 },
-                
+
                 "edges": {
                     "arrows": {
                         "to": {
@@ -60,34 +122,39 @@ class RuntimeVisualizer:
                             "scaleFactor": 0.8
                         }
                     },
-                    
+
                     "smooth": {
                         "enabled": true,
                         "type": "dynamic"
                     },
-                    
+
                     "font": {
                        "size": 14,
                        "background": "white",
                        "strokeWidth": 1
                     }
                 },
-                
+
                 "nodes": {
                     "font": {
                         "face": "monospace",
                         "size": 14
                     },
-                    
+
                     "borderWidth": 2
                 }
             }
             """
         )
 
-    def visualize(self, snapshot: RuntimeSnapshot, renderFrames: bool=True) -> str:
+        return net
+
+    def visualize(self, snapshot: RuntimeSnapshot) -> str:
+
+        self.net = self.net_init() # reset network
+
         self._add_objects(snapshot.objects)
-        if renderFrames:
+        if self.config.get_opt('renderFrames'):
             self._add_global_frame(snapshot.global_frame)
             self._add_function_frames(snapshot.function_frames)
 
