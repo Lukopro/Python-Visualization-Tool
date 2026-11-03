@@ -1,20 +1,29 @@
+import sys
+
 import tracer
 import viewer
 from visualizer import RuntimeVisualizer
 
 started = False
+updating = False
 visualizer = RuntimeVisualizer()
 
 def update():
-    global started
+    _internal_update()
 
-    if not started:
-        viewer.start()
-        started = True
+def trace_callback(frame, event, arg):
+    if event != "line":
+        return trace_callback
 
-    snapshot = tracer.trace()
-    viewer.draw(visualizer.visualize(snapshot))
+    _internal_update()
 
+    return trace_callback
+
+def start_auto():
+    sys.settrace(trace_callback)
+
+def stop_auto():
+    sys.settrace(None)
 
 # wrapper for modifying runtime visualizer configuration object
 def configure(renderFrames: bool=None, height: str=None, width: str=None,
@@ -22,3 +31,19 @@ def configure(renderFrames: bool=None, height: str=None, width: str=None,
     visualizer.update_config(renderFrames=renderFrames, height=height, width=width,
                directed=directed, bgcolor=bgcolor, font_color=font_color)
 
+def _internal_update():
+    global started, updating
+
+    if updating:
+        return
+
+    if not started:
+        viewer.start()
+        started = True
+
+    updating = True
+
+    snapshot = tracer.trace(3)
+    viewer.draw(visualizer.visualize(snapshot))
+
+    updating = False

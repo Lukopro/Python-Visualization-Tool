@@ -1,21 +1,21 @@
-import sys
 import types
 from databridge import (GlobalFrame, FunctionFrame, RuntimeSnapshot,
                         SequenceObject, MappedObject, FunctionObject,
                         Object, ObjectID, Value, UNSET, UnsupportedObject)
 import inspect
 
-
-def trace() -> RuntimeSnapshot:
+def trace(steps_back: int) -> RuntimeSnapshot:
     snapshot = RuntimeSnapshot()
     objects = snapshot.objects
 
     frame = inspect.currentframe()
-    if frame is not None and frame.f_back is not None and frame.f_back.f_back is not None:
-        frame = frame.f_back.f_back
-    else:
-        print("could not retrieve caller's frame\n")
-        exit()
+
+    for _ in range(steps_back):
+        if frame is None or frame.f_back is None:
+            print("Could not retrieve caller's frame\n")
+            exit()
+
+        frame = frame.f_back
 
     source_file = frame.f_code.co_filename
 

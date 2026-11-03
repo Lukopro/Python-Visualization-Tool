@@ -69,13 +69,11 @@ def transfer(source, destination, amount):
     def someOtherFunc():
         nonlocal transfer2
         transfer2 += 1
-        #main.update()
 
     if source.withdraw(amount):
         destination.deposit(amount)
         transferCount += 1
         someOtherFunc()
-        #main.update()
         return True
 
     return False
@@ -89,10 +87,9 @@ def create_accounts():
 
     bob.deposit(40)
 
-    #main.update()
-
     return alice, bob
 
+main.start_auto()
 
 headNode = LinkedListNode(0)
 headNode.append(10)
@@ -110,7 +107,6 @@ alice = accounts[0]
 bob = accounts[1]
 
 shared_history = alice.transactions
-main.configure(renderFrames=False)
 
 transfer(alice, bob, 50)
 
@@ -127,10 +123,11 @@ main.update()
 
 # funny_dict = { alice: alice_summary, bob: bob_summary }
 
+main.update()
+
 print(alice_summary)
 print(bob_summary)
 print(alice_total)
 print(bob_total)
 
 main.update()
-
