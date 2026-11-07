@@ -155,7 +155,8 @@ class RuntimeVisualizer:
 
         self._add_objects(snapshot.objects)
         if self.config.get_opt('renderFrames'):
-            self._add_global_frame(snapshot.global_frame)
+            if snapshot.global_frame is not None:
+                self._add_global_frame(snapshot.global_frame)
             self._add_function_frames(snapshot.function_frames)
 
         html = self.net.generate_html()
