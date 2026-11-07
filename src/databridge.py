@@ -10,7 +10,7 @@ class ObjectID:
 InlineValue = int | str | bool | float | None # | bytes | complex
 Value = InlineValue | ObjectID
 
-# primitive, list, tuple, set
+# list, tuple, set
 @dataclass
 class SequenceObject:
     type: str
@@ -54,7 +54,7 @@ class FunctionFrame:
 @dataclass
 class RuntimeSnapshot:
     objects: dict[ObjectID, Object] = field(default_factory=dict)
-    global_frame: GlobalFrame = field(default_factory=GlobalFrame)
+    global_frame: GlobalFrame | None = None
     function_frames: list[FunctionFrame] = field(default_factory=list)
 
     def __str__(self) -> str:
