@@ -19,6 +19,7 @@ class VisualizerConfig:
     # ex. configure(renderFrames=True) would set renderFrames to True
     def update(self, renderFrames: bool=None, height: str=None, width: str=None,
                directed: bool=None, bgcolor: str=None, font_color: str=None):
+
         if renderFrames is not None:
             self.configOpts['renderFrames'] = renderFrames
         if height is not None:
@@ -67,6 +68,20 @@ class RuntimeVisualizer:
         # First, add nodes
         for object_id, obj in snapshot.objects.items():
             # Filter object types and delegate
+            match obj:
+                case SequenceObject():
+                    self.graph.add_sequence_node(object_id, obj)
+                case MappedObject():
+                    self.graph.add_mapped_node(object_id, obj)
+                case FunctionObject():
+                    self.graph.add_function_node(object_id, obj)
+                case UnsupportedObject():
+                    self.graph.add_unsupported_node(object_id, obj)
+                case _:
+                    raise TypeError(f"Unknown object type: {type(obj)!r}")
+
+            # replaced with match case above, remove when above is validated
+            '''
             if isinstance(obj, SequenceObject):
                 self.graph.add_sequence_node(object_id, obj)
             elif isinstance(obj, MappedObject):
@@ -77,6 +92,7 @@ class RuntimeVisualizer:
                 self.graph.add_unsupported_node(object_id, obj)
             else:
                 raise TypeError(f"Unknown object type: {type(obj)!r}")
+            '''
 
         # Then, add edges
         for object_id, obj in snapshot.objects.items():

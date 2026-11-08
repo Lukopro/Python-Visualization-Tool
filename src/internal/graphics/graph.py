@@ -316,7 +316,7 @@ class Graph:
 
     def add_function_frames(self, frames: list[FunctionFrame]) -> None:
         for index, frame in enumerate(frames):
-            node_id = self._function_frame_node_id(index)
+            node_id = f"frame:function:{index}"
 
             lines = self._format_mapping_lines(list(
                 frame.arguments.items()) + list(frame.bindings.items()))
@@ -357,50 +357,51 @@ class Graph:
 
     @staticmethod
     def _object_node_id(object_id: ObjectID) -> str:
+        # formatted string for object ids
         return f"object:{object_id}"
-
-    @staticmethod
-    def _function_frame_node_id(index: int) -> str:
-        return f"frame:function:{index}"
 
     @staticmethod
     def _format_value(value: Value, object_label: str="Object") -> str:
         if isinstance(value, ObjectID):
             return object_label # f"Object #{value}"
 
-        return Graph._format_inline_value(value)
-
-    @staticmethod
-    def _format_inline_value(value: InlineValue) -> str:
-        if value is None:
-            return "None"
-
+        # puts single quotes around string basically
         if isinstance(value, str):
             return repr(value)
 
-        if isinstance(value, bool):
-            return "True" if value else "False"
-
+        # value is an inline value, format using str() cast
         return str(value)
 
     @staticmethod
     def _format_mapping_lines(items: list[tuple[Value, Value]]) -> list[str]:
-        keys = [Graph._format_value(key) for key, _ in items]
+
+        # get formatted list of keys and values
+        keys = []
+        values = []
+        for key, value in items:
+            keys.append(Graph._format_value(key))
+            values.append(Graph._format_value(value))
+
+        # get length of longest key
         max_key_width = max((len(key) for key in keys), default=0)
 
-        values = [Graph._format_value(value, "") for _, value in items]
+        # get the length of longest value
         max_value_width = max((len(value) for value in values), default=0)
 
+        # return list of formatted strings, where each string is in form "<key_name>: <value>"
         return [
             f"{key:>{max_key_width}}: {value:<{max_value_width}}"
             for key, value in zip(keys, values)
         ]
 
     def _has_node(self, node_id: str) -> bool:
-        return any(node["id"] == node_id for node in self.network.nodes)
+        # network.get_nodes() returns a list of node ids that are in the graph
+        # return whether a node with the specified id exists in the network
+        return any(node == node_id for node in self.network.get_nodes())
 
     @staticmethod
     def _escape(value: str) -> str:
+        # escape characters for html
         return (value
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
