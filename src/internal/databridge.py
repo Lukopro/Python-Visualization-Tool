@@ -14,13 +14,13 @@ Value = InlineValue | ObjectID
 @dataclass
 class SequenceObject:
     type: str
-    value: list[Value]
+    values: list[Value]
 
 # dict, class, instance
 @dataclass
 class MappedObject:
     type: str
-    value: dict[Value, Value]
+    values: dict[Value, Value]
 
 # functions
 @dataclass

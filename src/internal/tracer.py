@@ -1,10 +1,10 @@
 import types
-from databridge import (GlobalFrame, FunctionFrame, RuntimeSnapshot,
+from internal.databridge import (GlobalFrame, FunctionFrame, RuntimeSnapshot,
                         SequenceObject, MappedObject, FunctionObject,
                         Object, ObjectID, Value, UNSET, UnsupportedObject)
 import inspect
 
-def trace(steps_back: int) -> RuntimeSnapshot:
+def trace(steps_back: int, max_scopes: int = None) -> RuntimeSnapshot:
     snapshot = RuntimeSnapshot()
     objects = snapshot.objects
 
@@ -20,7 +20,7 @@ def trace(steps_back: int) -> RuntimeSnapshot:
     source_file = frame.f_code.co_filename
 
     frames = []
-    while frame is not None:
+    while frame is not None and (max_scopes is None or len(frames) < max_scopes):
         if frame.f_code.co_filename != source_file:
             break
         frames.append(frame)
@@ -85,7 +85,7 @@ def capture_object(value, objects, capturing) -> Object:
     if isinstance(value, (list, tuple, set)):
         return SequenceObject(
             type=type(value).__name__,
-            value=[
+            values=[
                 capture_value(item, objects, capturing)
                 for item in value
             ]
@@ -95,7 +95,7 @@ def capture_object(value, objects, capturing) -> Object:
     if isinstance(value, dict):
         return MappedObject(
             type=type(value).__name__,
-            value={
+            values={
                 capture_value(key, objects, capturing):
                 capture_value(item, objects, capturing)
                 for key, item in value.items()
@@ -106,7 +106,7 @@ def capture_object(value, objects, capturing) -> Object:
     if isinstance(value, type):
         return MappedObject(
             type=value.__name__,
-            value={
+            values={
                 capture_value(name, objects, capturing):
                 capture_value(member, objects, capturing)
                 for name, member in vars(value).items()
@@ -133,7 +133,7 @@ def capture_object(value, objects, capturing) -> Object:
     and type(value).__module__ != "builtins"):
         return MappedObject(
             type=type(value).__name__,
-            value={
+            values={
                 capture_value(name, objects, capturing):
                 capture_value(member, objects, capturing)
                 for name, member in vars(value).items()

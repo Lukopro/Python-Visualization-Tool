@@ -1,4 +1,4 @@
-import main
+import api.main as main
 
 ''' TEST CODE '''
 
