@@ -61,6 +61,10 @@ class RuntimeVisualizer:
         self.config.update(renderFrames=renderFrames, height=height, width=width,
                            directed=directed, bgcolor=bgcolor, font_color=font_color)
 
+        # Update graph's config too, for now
+        self.graph.configure(height=height, width=width, directed=directed,
+                             bgcolor=bgcolor, font_color=font_color)
+
     def visualize(self, snapshot: RuntimeSnapshot) -> str:
         # Clear graph, start fresh
         self.graph.reset_network()
@@ -113,3 +117,5 @@ class RuntimeVisualizer:
             if snapshot.global_frame is not None:
                 self.graph.add_global_frame(snapshot.global_frame)
             self.graph.add_function_frames(snapshot.function_frames)
+
+        return self.graph.html()

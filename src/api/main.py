@@ -20,9 +20,6 @@ def trace_callback(frame, event, arg):
     if event != "line" or frame.f_code.co_filename != file_to_update:
         return trace_callback
 
-    print(frame)
-    print("Event" + event)
-
     _internal_update()
 
     return trace_callback
@@ -67,7 +64,7 @@ def _internal_update():
 
     updating = True
 
-    snapshot = tracer.trace(3)
+    snapshot = tracer.trace(3, 2)
     viewer.draw(visualizer.visualize(snapshot))
 
     updating = False

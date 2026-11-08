@@ -40,7 +40,6 @@ class LinkedListNode():
         cur_node = self
         while cur_node.next is not None:
             cur_node = cur_node.next
-            #main.update()
         cur_node.next = LinkedListNode(value)
 
 def total_transactions(account):
