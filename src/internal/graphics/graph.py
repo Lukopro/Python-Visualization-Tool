@@ -82,15 +82,23 @@ class GraphConfig:
 
 class Graph:
     COLORS = {
-        "global": "#7973E6",
-        "frame": "#9D7CD6",
+        # Purple → Blue → Cyan
+        "global":      "#C99DDD",
+        "frame":       "#BCA2DE",
+        "class":       "#A2B5E2",
+        "instance":    "#9CD7E0", # Use a color generator later?
 
-        "sequence": "#0EA5E9",
-        "mapping": "#14B8A6",
-        "function": "#F59E0B",
-        "unsupported": "#64748B",
+        # Red → Orange → Yellow → Yellow-green
+        "list":        "#E8A09C",
+        "tuple":       "#E9B28D",
+        "set":         "#E7CB80",
+        "dict":        "#D9D985",
 
-        "inline": "#D9D9D9",
+        # Other
+        "function":    "#C58EAC",
+        "unsupported": "#B8B8B8",
+
+        "inline":      "#D9D9D9", # Not currently used
     }
 
     def __init__(self):
@@ -183,13 +191,22 @@ class Graph:
                              f"ObjectID = {object_id}\n"
                              f"length = {len(obj.values)}")
 
+        # Get appropriate color
+        match obj.type:
+            case "list":
+                color = self.COLORS["list"]
+            case "tuple":
+                color = self.COLORS["tuple"]
+            case _:
+                color = self.COLORS["set"]
+
         # Add node
         self.network.add_node(
             node_id,
             label=label,
             title=hover_description,
             shape="box",
-            color=self.COLORS["sequence"],
+            color=color,
             font={"color": "#FFFFFF"}
         )
 
@@ -210,13 +227,23 @@ class Graph:
                              f"ObjectID = {object_id}\n"
                              f"size = {len(obj.values)}")
 
+        # Get appropriate color
+        match obj.type:
+            case "dict":
+                color = self.COLORS["dict"]
+            case _ if obj.type.startswith("class:"):
+                color = self.COLORS["class"]
+            case _:
+                print(obj.type)
+                color = self.COLORS["instance"]
+
         # Add node
         self.network.add_node(
             node_id,
             label=label,
             title=hover_description,
             shape="box",
-            color=self.COLORS["mapping"],
+            color=color,
             font={"color": "#FFFFFF"}
         )
 
