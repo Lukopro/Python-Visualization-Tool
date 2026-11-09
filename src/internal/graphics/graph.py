@@ -390,11 +390,12 @@ class Graph:
         return f"object:{object_id}"
 
     @staticmethod
-    def _format_value(value: Value, object_label: str="Object") -> str:
+    def _format_value(value: Value) -> str:
         if isinstance(value, ObjectID):
-            return object_label # f"Object #{value}"
+            # Objects are shown by edges, so format them as empty text
+            return ""
 
-        # puts single quotes around string basically
+        # puts single quotes around string
         if isinstance(value, str):
             return repr(value)
 
