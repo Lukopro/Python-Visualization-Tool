@@ -1,69 +1,16 @@
 from internal.databridge import *
-
 from internal.graphics.graph import Graph
-
-# this class bundles configuration options to be used by visualizer
-class VisualizerConfig:
-    configOpts = {}
-
-    def __init__(self):
-        self.configOpts['renderFrames'] = True
-        self.configOpts['height'] = "900px"
-        self.configOpts['width'] = "100%"
-        self.configOpts['directed'] = True
-        self.configOpts['bgcolor'] = "#ffffff"
-        self.configOpts['font_color'] = "#111827"
-        # more config options initialized here
-
-    # used to update configuration settings
-    # ex. configure(renderFrames=True) would set renderFrames to True
-    def update(self, renderFrames: bool=None, height: str=None, width: str=None,
-               directed: bool=None, bgcolor: str=None, font_color: str=None):
-
-        if renderFrames is not None:
-            self.configOpts['renderFrames'] = renderFrames
-        if height is not None:
-            self.configOpts['height'] = height
-        if width is not None:
-            self.configOpts['width'] = width
-        if directed is not None:
-            self.configOpts['directed'] = directed
-        if bgcolor is not None:
-            self.configOpts['bgcolor'] = bgcolor
-        if font_color is not None:
-            self.configOpts['font_color'] = font_color
-        # this pattern can repeat for as many configurations we have
-
-    # getter function for visualizer to read specific config options
-    def get_opt(self, opt):
-        return self.configOpts[opt]
-    # returns formatted string of all configuration options
-    def __str__(self):
-        resultStr = ""
-        for opt, val in self.configOpts.items():
-            resultStr += f"{opt<20}: {val}\n"
-        return resultStr
-
+from api.config import Config
 
 class RuntimeVisualizer:
 
-    def __init__(self) -> None:
+    # get the reference for the config
+    config = Config()
 
-        # configuration object, use this object when referencing user-set options
-        self.config = VisualizerConfig()
+    def __init__(self) -> None:
 
         # initialize the graph
         self.graph = Graph()
-
-    # updates the visualizer's config object
-    def update_config(self, renderFrames: bool=None, height: str=None, width: str=None,
-                      directed: bool=None, bgcolor: str=None, font_color: str=None):
-        self.config.update(renderFrames=renderFrames, height=height, width=width,
-                           directed=directed, bgcolor=bgcolor, font_color=font_color)
-
-        # Update graph's config too, for now
-        self.graph.configure(height=height, width=width, directed=directed,
-                             bgcolor=bgcolor, font_color=font_color)
 
     def visualize(self, snapshot: RuntimeSnapshot) -> str:
         # Clear graph, start fresh
@@ -99,7 +46,7 @@ class RuntimeVisualizer:
             # FunctionObject and UnsupportedObject don't contain references
 
         # Then add frames and bind objects
-        if self.config.get_opt('renderFrames'):
+        if self.config.get_opt('render_frames'):
             if snapshot.global_frame is not None:
                 self.graph.add_global_frame(snapshot.global_frame)
             self.graph.add_function_frames(snapshot.function_frames)

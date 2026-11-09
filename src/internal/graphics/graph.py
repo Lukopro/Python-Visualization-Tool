@@ -1,21 +1,87 @@
 from pyvis.network import Network
 from internal.databridge import *
+from api.config import Config
 
-class GraphConfig:
-    DEFAULTS = {
-        'height': '900px',
-        'width': '100%',
-        'directed': True,
-        'bgcolor': '#FFFFFF',
-        'font_color': "#111827"
+class Graph:
+    COLORS = {
+        # Purple → Blue → Cyan
+        "global":      "#C99DDD",
+        "frame":       "#BCA2DE",
+        "class":       "#A2B5E2",
+        "instance":    "#9CD7E0", # Use a color generator later?
+
+        # Red → Orange → Yellow → Yellow-green
+        "list":        "#E8A09C",
+        "tuple":       "#E9B28D",
+        "set":         "#E7CB80",
+        "dict":        "#D9D985",
+
+        # Other
+        "function":    "#C58EAC",
+        "unsupported": "#B8B8B8",
+
+        "inline":      "#D9D9D9", # Not currently used
     }
 
     def __init__(self):
-        self.height = self.DEFAULTS['height']
-        self.width = self.DEFAULTS['width']
-        self.directed = self.DEFAULTS['directed']
-        self.bgcolor = self.DEFAULTS['bgcolor']
-        self.font_color = self.DEFAULTS['font_color']
+        self.network = None
+        # get the config reference from API
+        self.config = Config()
+        self.reset_network() # initializes network based on config parameters
+
+    # Remove data, keep config
+    def reset_network(self):
+        self.network = Network(
+            height=self.config.get_opt("height"),
+            width=self.config.get_opt("width"),
+            directed=self.config.get_opt("directed"),
+            bgcolor=self.config.get_opt("bgcolor"),
+            font_color=self.config.get_opt("font_color"),
+        )
+
+        self.network.set_options(self.get_network_options())
+
+    def html(self):
+        html = self.network.generate_html()
+
+        # Append to html to add physics button
+        html = html.replace("</body>",
+                            """
+                                <button
+                                    onclick="
+                                        const newEnabled = !network.physics.options.enabled;
+                                        network.setOptions({ 
+                                            physics: { enabled: newEnabled },
+                                            edges: {
+                                                smooth: {
+                                                    enabled: true,
+                                                    type: newEnabled ? 'dynamic' : 'continuous'
+                                                }
+                                            }
+                                        });
+                                        this.textContent = newEnabled ? 'Physics: ON' : 'Physics: OFF';
+                                    "
+                                    style="
+                                        position: fixed;
+                                        top: 16px;
+                                        left: 10px;
+                                        z-index: 9999;
+                                        padding: 8px 14px;
+                                        border: none;
+                                        border-radius: 5px;
+                                        background: #485775;
+                                        color: white;
+                                        font-size: 14px;
+                                        cursor: pointer;
+                                    "
+                                >
+                                    Physics: ON
+                                </button>
+                                </body>
+                            """
+                            )
+
+        return html
 
     def get_network_options(self):
         # When we have more config options, this will have to replace some values
@@ -78,101 +144,6 @@ class GraphConfig:
                         }
                     }
                     """
-
-
-class Graph:
-    COLORS = {
-        # Purple → Blue → Cyan
-        "global":      "#C99DDD",
-        "frame":       "#BCA2DE",
-        "class":       "#A2B5E2",
-        "instance":    "#9CD7E0", # Use a color generator later?
-
-        # Red → Orange → Yellow → Yellow-green
-        "list":        "#E8A09C",
-        "tuple":       "#E9B28D",
-        "set":         "#E7CB80",
-        "dict":        "#D9D985",
-
-        # Other
-        "function":    "#C58EAC",
-        "unsupported": "#B8B8B8",
-
-        "inline":      "#D9D9D9", # Not currently used
-    }
-
-    def __init__(self):
-        self.network = None
-        self.config = GraphConfig()
-        self.reset_network()
-
-
-    def configure(self, height: str | None = None, width: str | None = None,
-                  directed: bool | None = None, bgcolor: str | None = None, font_color: str | None = None):
-        if height is not None:
-            self.network.height = height
-        if width is not None:
-            self.network.width = width
-        if directed is not None:
-            self.network.directed = directed
-        if bgcolor is not None:
-            self.network.bgcolor = bgcolor
-        if font_color is not None:
-            self.network.font_color = font_color
-
-    # Remove data, keep config
-    def reset_network(self):
-        self.network = Network(
-            height=self.config.height,
-            width=self.config.width,
-            directed=self.config.directed,
-            bgcolor=self.config.bgcolor,
-            font_color=self.config.font_color
-        )
-
-        self.network.set_options(self.config.get_network_options())
-
-    def html(self):
-        html = self.network.generate_html()
-
-        # Append to html to add physics button
-        html = html.replace("</body>",
-                            """
-                                <button
-                                    onclick="
-                                        const newEnabled = !network.physics.options.enabled;
-                                        network.setOptions({ 
-                                            physics: { enabled: newEnabled },
-                                            edges: {
-                                                smooth: {
-                                                    enabled: true,
-                                                    type: newEnabled ? 'dynamic' : 'continuous'
-                                                }
-                                            }
-                                        });
-                                        this.textContent = newEnabled ? 'Physics: ON' : 'Physics: OFF';
-                                    "
-                                    style="
-                                        position: fixed;
-                                        top: 16px;
-                                        left: 10px;
-                                        z-index: 9999;
-                                        padding: 8px 14px;
-                                        border: none;
-                                        border-radius: 5px;
-                                        background: #485775;
-                                        color: white;
-                                        font-size: 14px;
-                                        cursor: pointer;
-                                    "
-                                >
-                                    Physics: ON
-                                </button>
-                                </body>
-                            """
-                            )
-
-        return html
 
     def add_sequence_node(self, object_id: ObjectID, obj: SequenceObject) -> None:
         node_id = self._object_node_id(object_id)

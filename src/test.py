@@ -87,7 +87,7 @@ def create_accounts():
     bob.deposit(40)
 
     return alice, bob
-
+main.configure(render_frames=False, font_color="#FF0000")
 main.start_auto()
 
 headNode = LinkedListNode(0)

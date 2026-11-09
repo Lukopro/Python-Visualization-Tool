@@ -1,3 +1,5 @@
+# main API class, exposes methods for user call
+
 import sys
 import inspect
 
@@ -5,11 +7,15 @@ import internal.tracer as tracer
 import internal.graphics.viewer as viewer
 from internal.graphics.visualizer import RuntimeVisualizer
 
+from api.config import Config
+
 started = False
 updating = False
 visualizer = RuntimeVisualizer()
 
 file_to_update = None
+
+
 
 def update():
     _internal_update()
@@ -46,11 +52,12 @@ def stop_auto():
 
     sys.settrace(None)
 
-# wrapper for modifying runtime visualizer configuration object
-def configure(renderFrames: bool=None, height: str=None, width: str=None,
+# API's wrapper for config class's update method
+def configure(render_frames: bool=None, height: str=None, width: str=None,
                directed: bool=None, bgcolor: str=None, font_color: str=None):
-    visualizer.update_config(renderFrames=renderFrames, height=height, width=width,
-               directed=directed, bgcolor=bgcolor, font_color=font_color)
+    # get the singleton config object and call update on it
+    Config().update(render_frames=render_frames, height=height, width=width, directed=directed,
+                    bgcolor=bgcolor, font_color=font_color)
 
 def _internal_update():
     global started, updating
