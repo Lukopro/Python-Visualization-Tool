@@ -84,20 +84,6 @@ class RuntimeVisualizer:
                 case _:
                     raise TypeError(f"Unknown object type: {type(obj)!r}")
 
-            # replaced with match case above, remove when above is validated
-            '''
-            if isinstance(obj, SequenceObject):
-                self.graph.add_sequence_node(object_id, obj)
-            elif isinstance(obj, MappedObject):
-                self.graph.add_mapped_node(object_id, obj)
-            elif isinstance(obj, FunctionObject):
-                self.graph.add_function_node(object_id, obj)
-            elif isinstance(obj, UnsupportedObject):
-                self.graph.add_unsupported_node(object_id, obj)
-            else:
-                raise TypeError(f"Unknown object type: {type(obj)!r}")
-            '''
-
         # Then, add edges
         for object_id, obj in snapshot.objects.items():
             if isinstance(obj, SequenceObject):

@@ -318,6 +318,7 @@ class Graph:
         for index, frame in enumerate(frames):
             node_id = f"frame:function:{index}"
 
+            # Format label
             lines = self._format_mapping_lines(list(
                 frame.arguments.items()) + list(frame.bindings.items()))
 
@@ -327,6 +328,7 @@ class Graph:
             else:
                 label += "\n(empty)"
 
+            # Add node
             self.network.add_node(
                 node_id,
                 label=label,
