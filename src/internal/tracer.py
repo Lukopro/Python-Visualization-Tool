@@ -110,9 +110,11 @@ def _capture_object(value: Any, objects: dict[ObjectID, Object], capturing: set[
         )
 
     # Classes
+    # Use 'class: ' because type is both user-friendly format and identifier
+    # The ':' distinguishes it as a class, because a class name itself cannot have ':'
     if isinstance(value, type):
         return MappedObject(
-            type=value.__name__,
+            type=f"class: {value.__name__}",
             values={
                 _capture_value(name, objects, capturing):
                     _capture_value(member, objects, capturing)
