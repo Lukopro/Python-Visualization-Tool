@@ -9,13 +9,16 @@ from internal.graphics.visualizer import RuntimeVisualizer
 
 from api.config import Config
 
+# tracks start status of graphics viewer
+# viewer must be started to receive HTML from visualizer
 started = False
+
+# tracks if an update call is in progress
+# preserves atomicity of _internal_update()
 updating = False
 visualizer = RuntimeVisualizer()
 
 file_to_update = None
-
-
 
 def update():
     _internal_update()
@@ -53,10 +56,12 @@ def stop_auto():
     sys.settrace(None)
 
 # API's wrapper for config class's update method
-def configure(render_frames: bool=None, height: str=None, width: str=None,
-               directed: bool=None, bgcolor: str=None, font_color: str=None):
+def configure(render_frames: bool=None, steps_back: int=None, max_scopes: int=None,
+              height: str=None, width: str=None,
+              directed: bool=None, bgcolor: str=None, font_color: str=None):
     # get the singleton config object and call update on it
-    Config().update(render_frames=render_frames, height=height, width=width, directed=directed,
+    Config().update(render_frames=render_frames, steps_back=steps_back, max_scopes=max_scopes,
+                    height=height, width=width, directed=directed,
                     bgcolor=bgcolor, font_color=font_color)
 
 def _internal_update():
@@ -71,7 +76,10 @@ def _internal_update():
 
     updating = True
 
-    snapshot = tracer.trace(3, 2)
+    steps = Config().configOpts('steps_back')
+    scopes = Config().configOpts('scopes_back')
+    snapshot = tracer.trace(steps, scopes)
+
     viewer.draw(visualizer.visualize(snapshot))
 
     updating = False
