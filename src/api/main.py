@@ -14,7 +14,7 @@ from api.config import Config
 started = False
 
 # tracks if an update call is in progress
-# preserves atomicity of _internal_update()
+# prevents internal recursion from trace_callback()
 updating = False
 visualizer = RuntimeVisualizer()
 
@@ -57,12 +57,10 @@ def stop_auto():
 
 # API's wrapper for config class's update method
 def configure(debug: bool=None, render_frames: bool=None, steps_back: int=None, max_scopes: int=None,
-              height: str=None, width: str=None,
-              directed: bool=None, bgcolor: str=None, font_color: str=None):
+              height: str=None, width: str=None, bgcolor: str=None, font_color: str=None):
     # get the singleton config object and call update on it
     Config().update(debug=debug, render_frames=render_frames, steps_back=steps_back, max_scopes=max_scopes,
-                    height=height, width=width, directed=directed,
-                    bgcolor=bgcolor, font_color=font_color)
+                    height=height, width=width, bgcolor=bgcolor, font_color=font_color)
 
 def _internal_update():
     global started, updating
@@ -76,8 +74,8 @@ def _internal_update():
 
     updating = True
 
-    steps = Config().configOpts('steps_back')
-    scopes = Config().configOpts('scopes_back')
+    steps = Config().get_opt('steps_back')
+    scopes = Config().get_opt('max_scopes')
     snapshot = tracer.trace(steps, scopes)
 
     viewer.draw(visualizer.visualize(snapshot))

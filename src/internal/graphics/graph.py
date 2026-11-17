@@ -34,7 +34,7 @@ class Graph:
         self.network = Network(
             height=self.config.get_opt("height"),
             width=self.config.get_opt("width"),
-            directed=self.config.get_opt("directed"),
+            directed=True,
             bgcolor=self.config.get_opt("bgcolor"),
             font_color=self.config.get_opt("font_color"),
         )

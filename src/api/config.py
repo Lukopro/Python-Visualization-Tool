@@ -16,17 +16,25 @@ class Config:
         'debug': False,
 
         # visualizer defaults
+        # whether to render function and global frames in visualization
         'render_frames': False,
 
         # tracer defaults
+        # steps back is for the most part internal constant
+        # represents the number of frames from the draw call reaches the caller's frame
         'steps_back': 3,
+        # number of scopes from the caller's frame to draw
+        # each frame is a scope
         'max_scopes': 2,
 
         # graph defaults
+        # height of the window in px
         'height': '900px',
+        # width of the window in px
         'width': '100%',
-        'directed': True,
+        # background color of graphics window
         'bgcolor': '#FFFFFF',
+        # color of text in graphics window
         'font_color': "#111827"
 
     }
@@ -46,7 +54,6 @@ class Config:
         # graph config
         self.configOpts['height'] = self.DEFAULTS['height']
         self.configOpts['width'] = self.DEFAULTS['width']
-        self.configOpts['directed'] = self.DEFAULTS['directed']
         self.configOpts['bgcolor'] = self.DEFAULTS['bgcolor']
         self.configOpts['font_color'] = self.DEFAULTS['font_color']
 
@@ -55,7 +62,7 @@ class Config:
     # ex. update(render_frames=True) would set render_frames to True
     def update(self, debug: bool=None, render_frames: bool=None, steps_back: int=None, max_scopes: int=None,
                height: str=None, width: str=None,
-               directed: bool=None, bgcolor: str=None, font_color: str=None):
+               bgcolor: str=None, font_color: str=None):
 
         # debug mode, not specific to a particular module
         if type(debug) is bool:
@@ -117,14 +124,6 @@ class Config:
                     print(f"width is set to: {self.configOpts['width']}")
             elif debug and type(width) is not None:
                 print(f"width input {width} rejected.")
-        # directed must be a boolean
-        if type(directed) is bool:
-            self.configOpts['directed'] = directed
-            if debug:
-                print(f"directed input {directed} accepted.")
-                print(f"directed is set to: {self.configOpts['directed']}")
-        elif debug and type(directed) is not None:
-            print(f"directed input {directed} rejected.")
         # bgcolor must be a hex color using 8-bit color space
         # ex. '#FFFFFF' is white
         if type(bgcolor) is str:
