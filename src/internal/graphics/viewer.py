@@ -1,46 +1,63 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import logging
 import os
 import subprocess
 import sys
 import threading
 
+_LOGGER = logging.getLogger(__name__)
 _process = None
 _lock = threading.Lock()
 
 _POLL_INTERVAL = 150
+_WORKER_ARGUMENT = "--html-viewer-worker"
+_CONSOLE_ARGUMENT = "--console-logging"
 
-def start() -> None:
+
+def start(*, console_logging: bool = False) -> None:
+    """Start the viewer. Set console_logging to show viewer logs in the console."""
     global _process
+
+    if console_logging:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(levelname)s:%(name)s:%(message)s",
+        )
 
     with _lock:
         if _process is not None and _process.poll() is None:
             return
 
+        arguments = [sys.executable, os.path.abspath(__file__), _WORKER_ARGUMENT]
+        if console_logging:
+            arguments.append(_CONSOLE_ARGUMENT)
+
         _process = subprocess.Popen(
-            [sys.executable, os.path.abspath(__file__), "--html-viewer-worker"],
+            arguments,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL, # Discard errors
+            stderr=None if console_logging else subprocess.DEVNULL,
             text=True,
             encoding="utf-8",
             bufsize=1,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
 
         try:
-            # Make sure server starts before draw() is called
-            assert _process.stdout is not None
-            ready = _process.stdout.readline().strip()
+            if _process.stdout is None:
+                raise RuntimeError("Viewer output is unavailable.")
 
+            ready = _process.stdout.readline().strip()
             if not ready.startswith("READY "):
                 raise RuntimeError(f"Viewer failed to start. Worker exit code: {_process.poll()}")
 
             _process.stdout.close()
-
-        except BaseException:
+            _LOGGER.info("Viewer started.")
+        except Exception:
             _terminate()
             raise
+
 
 def draw(html: str) -> None:
     with _lock:
@@ -53,53 +70,76 @@ def draw(html: str) -> None:
         try:
             _process.stdin.write(json.dumps(html) + "\n")
             _process.stdin.flush()
+            _LOGGER.debug("Updated viewer content.")
         except (BrokenPipeError, OSError) as e:
+            _LOGGER.error("Could not send content to the viewer.")
             raise RuntimeError("Viewer has closed.") from e
+
 
 def close() -> None:
     with _lock:
         _terminate()
 
+
 def _terminate() -> None:
     global _process
 
-    if _process is None:
+    process = _process
+    if process is None:
         return
 
-    if _process.poll() is None:
-
-        if _process.stdin is not None:
-            _process.stdin.write(json.dumps(None) + "\n")
-            _process.stdin.flush()
-            _process.stdin.close()
-
-        _process.terminate()
-        try:
-            _process.wait(timeout=2)
-        except subprocess.TimeoutExpired:
-            _process.kill()
-            _process.wait()
     _process = None
+    if process.poll() is None:
+        try:
+            if process.stdin is not None:
+                process.stdin.write(json.dumps(None) + "\n")
+                process.stdin.flush()
+                process.stdin.close()
+            process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            process.terminate()
+            try:
+                process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+        except (BrokenPipeError, OSError):
+            process.terminate()
+            process.wait()
+    _LOGGER.info("Viewer stopped.")
 
-def _run_worker():
+
+def _run_worker(*, console_logging: bool = False) -> None:
     import webview
+
+    if console_logging:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(levelname)s:%(name)s:%(message)s",
+        )
 
     state = {"html": "<h2>Waiting for HTML...</h2>"}
     state_lock = threading.Lock()
     stop = threading.Event()
 
     class Handler(BaseHTTPRequestHandler):
-        def do_GET(self):
+        def _send_content(self, content: bytes, content_type: str) -> None:
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+
+        def log_message(self, format: str, *args: object) -> None:
+            _LOGGER.debug("%s - %s", self.address_string(), format % args)
+
+        def do_GET(self) -> None:
             if self.path == "/state":
                 with state_lock:
                     payload = json.dumps(state["html"]).encode("utf-8")
 
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Cache-Control", "no-store")
-                self.send_header("Content-Length", str(len(payload)))
-                self.end_headers()
-                self.wfile.write(payload)
+                self._send_content(payload, "application/json; charset=utf-8")
                 return
 
             if self.path == "/":
@@ -154,21 +194,18 @@ def _run_worker():
                 </html>
                 """.encode("utf-8")
 
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Content-Length", str(len(page)))
-                self.end_headers()
-                self.wfile.write(page)
+                self._send_content(page, "text/html; charset=utf-8")
                 return
 
             self.send_error(404)
 
-    def read_updates():
+    def read_updates() -> None:
         try:
             for line in sys.stdin:
                 try:
                     html = json.loads(line)
                 except json.JSONDecodeError:
+                    _LOGGER.warning("Ignoring invalid viewer update.")
                     continue
 
                 if html is None:
@@ -178,14 +215,18 @@ def _run_worker():
                 if isinstance(html, str):
                     with state_lock:
                         state["html"] = html
+                else:
+                    _LOGGER.warning("Ignoring viewer update with an unsupported value.")
         finally:
             stop.set()
+
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     server.daemon_threads = True
 
     threading.Thread(target=server.serve_forever, name="html-viewer-http", daemon=True).start()
 
     print(f"READY {server.server_port}", flush=True)
+    _LOGGER.info("Viewer server listening on port %s.", server.server_port)
 
     threading.Thread(target=read_updates, name="html-viewer-input", daemon=True).start()
 
@@ -193,7 +234,9 @@ def _run_worker():
         window = webview.create_window(
             "Graphics viewer",
             f"http://127.0.0.1:{server.server_port}/",
-            width=960, height=960, min_size=(360, 360)
+            width=960,
+            height=960,
+            min_size=(360, 360),
         )
 
         window.events.closed += lambda *_: stop.set()
@@ -202,8 +245,11 @@ def _run_worker():
         stop.set()
         server.shutdown()
         server.server_close()
+        _LOGGER.info("Viewer server stopped.")
 
-if __name__ == "__main__" and sys.argv[1:] == [
-    "--html-viewer-worker"
-]:
-    _run_worker()
+
+if __name__ == "__main__" and sys.argv[1:] in (
+    [_WORKER_ARGUMENT],
+    [_WORKER_ARGUMENT, _CONSOLE_ARGUMENT],
+):
+    _run_worker(console_logging=_CONSOLE_ARGUMENT in sys.argv[1:])
