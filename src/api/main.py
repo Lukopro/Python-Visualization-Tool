@@ -56,11 +56,11 @@ def stop_auto():
     sys.settrace(None)
 
 # API's wrapper for config class's update method
-def configure(render_frames: bool=None, steps_back: int=None, max_scopes: int=None,
+def configure(debug: bool=None, render_frames: bool=None, steps_back: int=None, max_scopes: int=None,
               height: str=None, width: str=None,
               directed: bool=None, bgcolor: str=None, font_color: str=None):
     # get the singleton config object and call update on it
-    Config().update(render_frames=render_frames, steps_back=steps_back, max_scopes=max_scopes,
+    Config().update(debug=debug, render_frames=render_frames, steps_back=steps_back, max_scopes=max_scopes,
                     height=height, width=width, directed=directed,
                     bgcolor=bgcolor, font_color=font_color)
 
