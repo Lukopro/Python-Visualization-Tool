@@ -6,6 +6,8 @@ import subprocess
 import sys
 import threading
 
+from api.config import Config
+
 _LOGGER = logging.getLogger(__name__)
 _process = None
 _lock = threading.Lock()
@@ -234,9 +236,9 @@ def _run_worker(*, console_logging: bool = False) -> None:
         window = webview.create_window(
             "Graphics viewer",
             f"http://127.0.0.1:{server.server_port}/",
-            width=960,
-            height=960,
-            min_size=(360, 360),
+            width=Config().get_opt('width'),
+            height=Config().get_opt('height'),
+            min_size=(400, 400),
         )
 
         window.events.closed += lambda *_: stop.set()

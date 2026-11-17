@@ -20,18 +20,18 @@ class Config:
         'render_frames': False,
 
         # tracer defaults
-        # steps back is for the most part internal constant
+        # steps back is an internal constant
         # represents the number of frames from the draw call reaches the caller's frame
         'steps_back': 3,
         # number of scopes from the caller's frame to draw
         # each frame is a scope
-        'max_scopes': 2,
+        'max_scopes': 1,
 
         # graph defaults
         # height of the window in px
-        'height': '900px',
+        'height': 960,
         # width of the window in px
-        'width': '100%',
+        'width': 960,
         # background color of graphics window
         'bgcolor': '#FFFFFF',
         # color of text in graphics window
@@ -60,8 +60,8 @@ class Config:
 
     # used to update configuration settings
     # ex. update(render_frames=True) would set render_frames to True
-    def update(self, debug: bool=None, render_frames: bool=None, steps_back: int=None, max_scopes: int=None,
-               height: str=None, width: str=None,
+    def update(self, debug: bool=None, render_frames: bool=None, max_scopes: int=None,
+               height: int=None, width: int=None,
                bgcolor: str=None, font_color: str=None):
 
         # debug mode, not specific to a particular module
@@ -84,14 +84,6 @@ class Config:
             print(f"render_frames input {render_frames} rejected.")
 
         # tracer configs
-        # steps_back must be a positive integer
-        if type(steps_back) is int and steps_back > 0:
-            self.configOpts['steps_back'] = steps_back
-            if debug:
-                print(f"steps_back input {steps_back} accepted.")
-                print(f"steps_back is set to: {self.configOpts['steps_back']}")
-        elif debug and type(steps_back) is not None:
-            print(f"steps_back input {steps_back} rejected.")
         # max_scopes must be a positive integer
         if type(max_scopes) is int and max_scopes > 0:
             self.configOpts['max_scopes'] = max_scopes
@@ -102,28 +94,24 @@ class Config:
             print(f"max_scopes input {max_scopes} rejected.")
 
         # graph configs
-        # height must be a string in <number>px form
-        # <number> must be positive
-        # ex. '300px'
-        if type(height) is str:
-            if re.match(r'^\d+px$', height) is not None:
-                self.configOpts['height'] = height
-                if debug:
-                    print(f"height input {height} accepted.")
-                    print(f"height is set to: {self.configOpts['height']}")
-            elif debug and type(height) is not None:
-                print(f"height input {height} rejected.")
-        # width must be a string in <number>% form
-        # <number must be positive
-        # ex. '80%'
-        if type(width) is str:
-            if re.match(r'^\d+%$', width) is not None:
-                self.configOpts['width'] = width
-                if debug:
-                    print(f"width input {width} accepted.")
-                    print(f"width is set to: {self.configOpts['width']}")
-            elif debug and type(width) is not None:
-                print(f"width input {width} rejected.")
+        # height is in px, a positive integer
+        # ex '300' for 300px
+        if type(height) is int and height > 0:
+            self.configOpts['height'] = height
+            if debug:
+                print(f"height input {height} accepted.")
+                print(f"height is set to: {self.configOpts['height']}")
+        elif debug and type(height) is not None:
+            print(f"height input {height} rejected.")
+        # width is in px, a positive integer
+        # ex. '300' for 300px
+        if type(width) is int and width > 0:
+            self.configOpts['width'] = width
+            if debug:
+                print(f"width input {width} accepted.")
+                print(f"width is set to: {self.configOpts['width']}")
+        elif debug and type(width) is not None:
+            print(f"width input {width} rejected.")
         # bgcolor must be a hex color using 8-bit color space
         # ex. '#FFFFFF' is white
         if type(bgcolor) is str:
