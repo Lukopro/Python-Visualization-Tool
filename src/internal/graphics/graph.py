@@ -35,7 +35,7 @@ class Graph:
             height=str(Config().get_opt('height')) + 'px',
             width=str(Config().get_opt('width')) + 'px',
             directed=True,
-            bgcolor=self.config.get_opt("bgcolor"),
+            bgcolor=self.config.get_opt("bg_color"),
             font_color=self.config.get_opt("font_color"),
         )
 

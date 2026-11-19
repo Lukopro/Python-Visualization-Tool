@@ -1,6 +1,14 @@
 import api.main as main
 
-''' TEST CODE '''
+''' 
+TEST CODE
+
+Generic testing code to see a breadth of visualization
+conditions in a single motion.
+Modified often to test different scenarios
+
+Quick, informal integration test of entire system
+'''
 
 class BankAccount:
     bank_name = "Python Bank"

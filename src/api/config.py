@@ -33,7 +33,7 @@ class Config:
         # width of the window in px
         'width': 960,
         # background color of graphics window
-        'bgcolor': '#FFFFFF',
+        'bg_color': '#FFFFFF',
         # color of text in graphics window
         'font_color': "#111827"
 
@@ -59,7 +59,7 @@ class Config:
             # graph config
             self.configOpts['height'] = self.DEFAULTS['height']
             self.configOpts['width'] = self.DEFAULTS['width']
-            self.configOpts['bgcolor'] = self.DEFAULTS['bgcolor']
+            self.configOpts['bg_color'] = self.DEFAULTS['bg_color']
             self.configOpts['font_color'] = self.DEFAULTS['font_color']
 
             # set intialized flag
@@ -70,7 +70,7 @@ class Config:
     # ex. update(render_frames=True) would set render_frames to True
     def update(self, debug: bool=None, render_frames: bool=None, max_scopes: int=None,
                height: int=None, width: int=None,
-               bgcolor: str=None, font_color: str=None):
+               bg_color: str=None, font_color: str=None):
 
         # debug mode, not specific to a particular module
         if type(debug) is bool:
@@ -78,7 +78,7 @@ class Config:
             if debug:
                 print(f"debug input {debug} accepted.")
                 print(f"debug is set to: {self.configOpts['debug']}")
-        elif debug and type(debug) is not None:
+        elif debug and debug is not None:
             print(f"debug input {debug} rejected.")
 
         # visualizer configs
@@ -88,7 +88,7 @@ class Config:
             if debug:
                 print(f"render_frames input {render_frames} accepted.")
                 print(f"render_frames is set to: {self.configOpts['render_frames']}")
-        elif debug and type(render_frames) is not None:
+        elif debug and render_frames is not None:
             print(f"render_frames input {render_frames} rejected.")
 
         # tracer configs
@@ -98,7 +98,7 @@ class Config:
             if debug:
                 print(f"max_scopes input {max_scopes} accepted.")
                 print(f"max_scopes is set to: {self.configOpts['max_scopes']}")
-        elif debug and type(max_scopes) is not None:
+        elif debug and max_scopes is not None:
             print(f"max_scopes input {max_scopes} rejected.")
 
         # graph configs
@@ -109,7 +109,7 @@ class Config:
             if debug:
                 print(f"height input {height} accepted.")
                 print(f"height is set to: {self.configOpts['height']}")
-        elif debug and type(height) is not None:
+        elif debug and height is not None:
             print(f"height input {height} rejected.")
         # width is in px, a positive integer
         # ex. '300' for 300px
@@ -118,29 +118,29 @@ class Config:
             if debug:
                 print(f"width input {width} accepted.")
                 print(f"width is set to: {self.configOpts['width']}")
-        elif debug and type(width) is not None:
+        elif debug and width is not None:
             print(f"width input {width} rejected.")
-        # bgcolor must be a hex color using 8-bit color space
+        # bg_color must be a hex color using 8-bit color space
         # ex. '#FFFFFF' is white
-        if type(bgcolor) is str:
-            if re.match(r'^#[a-fA-F0-9]{6}$', bgcolor) is not None:
-                self.configOpts['bgcolor'] = bgcolor
+        if type(bg_color) is str:
+            if re.match(r'^#[a-fA-F0-9]{6}$', bg_color) is not None:
+                self.configOpts['bg_color'] = bg_color
                 if debug:
-                    print(f"bgcolor input {bgcolor} accepted.")
-                    print(f"bgcolor is set to: {self.configOpts['bgcolor']}")
+                    print(f"bg_color input {bg_color} accepted.")
+                    print(f"bg_color is set to: {self.configOpts['bg_color']}")
             else:
                 # compare against defined colors
                 assigned = False
                 # the system default color
-                if bgcolor.lower() == 'default':
-                    self.configOpts['bgcolor'] = Config.DEFAULTS['bgcolor']
+                if bg_color.lower() == 'default':
+                    self.configOpts['bg_color'] = Config.DEFAULTS['bg_color']
                     assigned = True
 
                 if debug and assigned:
-                    print(f"bgcolor input {bgcolor} accepted.")
-                    print(f"bgcolor is set to: {self.configOpts['bgcolor']}")
-        elif debug and type(bgcolor) is not None:
-            print(f"bgcolor input {bgcolor} rejected.")
+                    print(f"bg_color input {bg_color} accepted.")
+                    print(f"bg_color is set to: {self.configOpts['bg_color']}")
+        elif debug and bg_color is not None:
+            print(f"bg_color input {bg_color} rejected.")
         # font_color must be a hex color using 8-bit color space
         # ex. '#FFFFFF' is white
         if type(font_color) is str:
@@ -159,7 +159,7 @@ class Config:
                 if debug and assigned:
                     print(f"font_color input {font_color} accepted.")
                     print(f"font_color is set to: {self.configOpts['font_color']}")
-        elif debug and type(font_color) is not None:
+        elif debug and font_color is not None:
             print(f"font_color input {font_color} rejected.")
 
     # getter function for visualizer to read specific config options

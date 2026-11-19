@@ -57,10 +57,10 @@ def stop_auto():
 
 # API's wrapper for config class's update method
 def configure(debug: bool=None, render_frames: bool=None, max_scopes: int=None,
-              height: int=None, width: int=None, bgcolor: str=None, font_color: str=None):
+              height: int=None, width: int=None, bg_color: str=None, font_color: str=None):
     # get the singleton config object and call update on it
     Config().update(debug=debug, render_frames=render_frames, max_scopes=max_scopes,
-                    height=height, width=width, bgcolor=bgcolor, font_color=font_color)
+                    height=height, width=width, bg_color=bg_color, font_color=font_color)
 
 def _internal_update():
     global started, updating
