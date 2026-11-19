@@ -87,8 +87,8 @@ def create_accounts():
     bob.deposit(40)
 
     return alice, bob
-main.configure(render_frames=False, font_color="#FF0000")
-main.start_auto()
+main.configure(render_frames=True, font_color="#FF0000", debug=True)
+main.update()
 
 headNode = LinkedListNode(0)
 headNode.append(10)

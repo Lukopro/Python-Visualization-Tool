@@ -8,7 +8,7 @@ import re
 class Config:
 
     # declare singleton object
-    config = None
+    _config = None
 
     DEFAULTS = {
 
@@ -41,21 +41,29 @@ class Config:
 
     # initializes config to default values
     def __init__(self):
-        # initialize config dictionary
-        self.configOpts = {}
 
-        # visualizer config
-        self.configOpts['render_frames'] = self.DEFAULTS['render_frames']
+        # "_initialized" flag is boolean declared in __new__ method
+        # stops config from wiping itself out after it was initialized
+        if not self._initialized:
 
-        # tracer config
-        self.configOpts['steps_back'] = self.DEFAULTS['steps_back']
-        self.configOpts['max_scopes'] = self.DEFAULTS['max_scopes']
+            # initialize config dictionary
+            self.configOpts = {}
 
-        # graph config
-        self.configOpts['height'] = self.DEFAULTS['height']
-        self.configOpts['width'] = self.DEFAULTS['width']
-        self.configOpts['bgcolor'] = self.DEFAULTS['bgcolor']
-        self.configOpts['font_color'] = self.DEFAULTS['font_color']
+            # visualizer config
+            self.configOpts['render_frames'] = self.DEFAULTS['render_frames']
+
+            # tracer config
+            self.configOpts['steps_back'] = self.DEFAULTS['steps_back']
+            self.configOpts['max_scopes'] = self.DEFAULTS['max_scopes']
+
+            # graph config
+            self.configOpts['height'] = self.DEFAULTS['height']
+            self.configOpts['width'] = self.DEFAULTS['width']
+            self.configOpts['bgcolor'] = self.DEFAULTS['bgcolor']
+            self.configOpts['font_color'] = self.DEFAULTS['font_color']
+
+            # set intialized flag
+            self._initialized = True
 
 
     # used to update configuration settings
@@ -76,10 +84,10 @@ class Config:
         # visualizer configs
         # render_frames must be a boolean
         if type(render_frames) is bool:
+            self.configOpts['render_frames'] = render_frames
             if debug:
                 print(f"render_frames input {render_frames} accepted.")
                 print(f"render_frames is set to: {self.configOpts['render_frames']}")
-            self.configOpts['render_frames'] = render_frames
         elif debug and type(render_frames) is not None:
             print(f"render_frames input {render_frames} rejected.")
 
@@ -168,6 +176,7 @@ class Config:
     # overrides call to create new object with reference to single object
     # enforces the creation of exactly one object (singleton)
     def __new__(cls):
-        if cls.config is None:
-            cls.config = super().__new__(cls)
-        return cls.config
+        if cls._config is None:
+            cls._config = object.__new__(cls)
+            cls._config._initialized = False
+        return cls._config
