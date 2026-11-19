@@ -205,7 +205,6 @@ class Graph:
             case _ if obj.type.startswith("class:"):
                 color = self.COLORS["class"]
             case _:
-                print(obj.type)
                 color = self.COLORS["instance"]
 
         # Add node
