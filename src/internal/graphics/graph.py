@@ -85,6 +85,59 @@ class Graph:
 
     def get_network_options(self):
         # When we have more config options, this will have to replace some values
+        '''
+                        "layout": {
+                            "hierarchical": {
+                                "enabled": true,
+                                "direction": "LR",
+                                "sortMethod": "directed",
+                                "shakeTowards": "roots",
+                                "levelSeparation": 250,
+                                "nodeSpacing": 150,
+                                "treeSpacing": 200,
+                                "blockShifting": true,
+                                "edgeMinimization": true,
+                                "parentCentralization": true
+                            }
+                        },
+                        "physics": {
+                            "enabled": false
+                        },
+
+
+
+                        "interaction": {
+                            "hover": true,
+                            "navigationButtons": false,
+                            "keyboard": false,
+                            "multiselect": false,
+                            "selectConnectedEdges": true
+                        },
+
+                        "layout": {
+                            "improvedLayout": true
+                        },
+
+                        "physics": {
+                            "enabled": true,
+                            "solver": "forceAtlas2Based",
+
+                            "forceAtlas2Based": {
+                                "gravitationalConstant": -40,
+                                "centralGravity": 0.01,
+                                "springLength": 60,
+                                "springConstant": 0.01,
+                                "damping": 0.4,
+                                "avoidOverlap": 1
+                            },
+
+                            "stabilization": {
+                                "enabled": true,
+                                "fit": false,
+                                "iterations": 500
+                            }
+                        },'''
+
         return """
                     {
                         "interaction": {
@@ -95,12 +148,16 @@ class Graph:
                             "selectConnectedEdges": true
                         },
 
+                        "layout": {
+                            "improvedLayout": true
+                        },
+
                         "physics": {
                             "enabled": true,
                             "solver": "forceAtlas2Based",
 
                             "forceAtlas2Based": {
-                                "gravitationalConstant": -50,
+                                "gravitationalConstant": -40,
                                 "centralGravity": 0.01,
                                 "springLength": 60,
                                 "springConstant": 0.01,
@@ -110,9 +167,11 @@ class Graph:
 
                             "stabilization": {
                                 "enabled": true,
+                                "fit": false,
                                 "iterations": 500
                             }
                         },
+                        
 
                         "edges": {
                             "arrows": {
