@@ -30,6 +30,7 @@ class Graph:
         self._char_width = 8.43
         self._line_height = 14
         self._anchor_specs: list[dict] = []
+        self._visual_edges = []
 
         # get the config reference from API
         self.config = Config()
@@ -49,6 +50,7 @@ class Graph:
         self.network.set_options(self.get_network_options())
 
         self._anchor_specs: list[dict] = []
+        self._visual_edges = []
 
     def html(self):
         html = self.network.generate_html()
@@ -95,6 +97,27 @@ class Graph:
                                     <script>
                                     (function () {{
                                         const anchorSpecs = {json.dumps(self._anchor_specs)}
+                                        const visualEdges = {json.dumps(self._visual_edges)}
+                                        
+                                        let visualEdgesAdded = false;
+                                        
+                                        function addVisualEdges() {{
+                                            if (visualEdgesAdded) return;
+                                            if (visualEdges.length === 0) return;
+                                            visualEdgesAdded = true;
+                                            
+                                            network.body.data.edges.add(
+                                                visualEdges.map((edge, index) => ({{
+                                                    ...edge,
+                                                    id: `visual-edge-${{index}}`,
+                                                    physics: true
+                                                }}))
+                                            );
+                                            
+                                            network.off("afterDrawing", addVisualEdges);
+                                        }}
+                                        
+                                        network.on("afterDrawing", addVisualEdges);
 
                                         const anchorsByParent = new Map();
 
@@ -683,8 +706,15 @@ class Graph:
 
             target_id = self._object_node_id(spec["target"])
 
-            # Edge from the anchor to its reference
-            self.network.add_edge(anchor_id, target_id, title=f"{self._escape(spec['label'])} → Object #{spec['target']}")
+            # Invisible parent → child edge for hierarchy and physics
+            self.network.add_edge(parent_id, target_id, hidden=True, physics=True)
+
+            # Save visual edge for later
+            self._visual_edges.append({
+                "from": anchor_id,
+                "to": target_id,
+                "title": f"{self._escape(spec['label'])} → Object #{spec['target']}"
+            })
 
     @staticmethod
     def _object_node_id(object_id: ObjectID) -> str:
