@@ -339,7 +339,7 @@ class Graph:
 
         hover_description = f"{self._escape(label)} → Object #{value}"
 
-        self.network.add_edge(source, target, label=label, color=color, title=hover_description)
+        self.network.add_edge(source, target, label=label, smooth=False, color=color, title=hover_description)
 
     def add_global_frame(self, frame: GlobalFrame) -> None:
         node_id = "frame:global"
