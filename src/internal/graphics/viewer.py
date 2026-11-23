@@ -158,39 +158,141 @@ def _run_worker(*, console_logging: bool = False) -> None:
                             border: 0;
                             overflow: hidden;
                         }}
+                        
+                        #viewer-container {{
+                            position: relative;
+                            width: 100%;
+                            height: 100%;
+                        }}
+                        
+                        #viewer-container iframe {{
+                            position: absolute;
+                            inset: 0;
+                            width: 100%;
+                            height: 100%;
+                            border: 0;
+                        }}
                         </style>
                     </head>
                     
                     <body>
-                    <iframe id="view" title="Graphics viewer"></iframe>
+                    <div id="viewer-container">
+                        <iframe id="view" title="Graphics viewer"></iframe>
+                    </div>
                         <script>
-                        let previous = null;
-                        let updating = false;
-                        
-                        async function refresh() {{
-                            if (updating) return;
-                            updating = true;
+                            let previous = null;
+                            let updating = false;
                             
-                            try {{
-                                const response = await fetch('/state', {{cache: 'no-store'}});
-                                if (!response.ok) {{
-                                    throw new Error('Snapshot request failed: ' + response.status);
+                            function captureCamera(view) {{
+                                try {{
+                                    const network = view.contentWindow.network;
+                                    
+                                    if (!network) return null;
+                                    
+                                    return {{
+                                        position: network.getViewPosition(),
+                                        scale: network.getScale()
+                                    }};
+                                }} catch (e) {{
+                                    console.warn("Could not capture camera: ", e);
+                                    return null;
                                 }}
-                                
-                                const html = await response.json();
-                                if (html !== previous) {{
-                                    document.getElementById('view').srcdoc = html;
-                                    previous = html;
-                                }}
-                            }} catch (e) {{
-                                console.error('HTML viewer update failed:', e);
-                            }} finally {{
-                                updating = false;
-                                setTimeout(refresh, {_POLL_INTERVAL});
                             }}
-                        }}
-                        
-                        refresh();
+                            
+                            function restoreCamera(view, cameraState) {{
+                                return new Promise((resolve, reject) => {{
+                                    let attempts = 0;
+                                    
+                                    const restore = () => {{
+                                        try {{
+                                            const network = view.contentWindow.network;
+                                            
+                                            if (!network) {{
+                                                if (++attempts < 100) {{
+                                                    setTimeout(restore, 50);
+                                                }} else {{
+                                                    reject(new Error("Network initialization timed out."));
+                                                }}
+                                                return;
+                                            }}
+                                            
+                                            if (cameraState) {{
+                                                network.moveTo({{
+                                                    position: cameraState.position,
+                                                    scale: cameraState.scale,
+                                                    animation: false
+                                                }});
+                                            }}
+                                            
+                                            resolve();
+                                        }} catch (e) {{
+                                            reject(e);
+                                        }}
+                                    }};
+                                    
+                                    restore();
+                                }});
+                            }}
+                            
+                            async function replaceView(html) {{
+                                const container = document.getElementById("viewer-container");
+                                
+                                const oldView = document.getElementById("view");
+                                const cameraState = captureCamera(oldView);
+                                
+                                const newView = document.createElement("iframe");
+                                
+                                newView.style.visibility = "hidden";
+                                newView.style.zIndex = '2';
+                                
+                                container.appendChild(newView);
+                                
+                                try {{
+                                    await new Promise((resolve, reject) => {{
+                                        newView.onload = resolve;
+                                        newView.onerror = reject;
+                                        newView.srcdoc = html;
+                                    }});
+                                    
+                                    await restoreCamera(newView, cameraState);
+                                    
+                                    newView.id = "view";
+                                    newView.style.visibility = "visible";
+                                    
+                                    oldView.remove();
+                                    return true;
+                                }} catch (e) {{
+                                    console.error("Could not replace viewer: ", e);
+                                    newView.remove();
+                                    return false;
+                                }}
+                            }}
+                            
+                            async function refresh() {{
+                                if (updating) return;
+                                updating = true;
+                                
+                                try {{
+                                    const response = await fetch("/state", {{ cache: "no-store" }});
+                                    if (!response.ok) {{
+                                        throw new Error("Snapshot request failed: " + response.status);
+                                    }}
+                                    
+                                    const html = await response.json();
+                                    
+                                    if (html !== previous) {{
+                                        const success = await replaceView(html);
+                                        if (success) previous = html;
+                                    }}
+                                }} catch (e) {{
+                                    console.error("Viewer refresh failed: ", e);
+                                }} finally {{
+                                    updating = false;
+                                    setTimeout(refresh, {_POLL_INTERVAL});
+                                }}
+                            }}
+                            
+                            refresh();
                         </script>
                     </body>
                 </html>
@@ -242,6 +344,8 @@ def _run_worker(*, console_logging: bool = False) -> None:
         )
 
         window.events.closed += lambda *_: stop.set()
+
+        # Pass debug=True to open DevTools
         webview.start()
     finally:
         stop.set()
