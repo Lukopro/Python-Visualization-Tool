@@ -1,6 +1,7 @@
 from pyvis.network import Network
 from internal.databridge import *
 from api.config import Config
+import json
 
 class Graph:
     COLORS = {
@@ -25,8 +26,14 @@ class Graph:
 
     def __init__(self):
         self.network = None
+
+        self._char_width = 8.43
+        self._line_height = 14
+        self._anchor_specs: list[dict] = []
+
         # get the config reference from API
         self.config = Config()
+
         self.reset_network() # initializes network based on config parameters
 
     # Remove data, keep config
@@ -40,6 +47,8 @@ class Graph:
         )
 
         self.network.set_options(self.get_network_options())
+
+        self._anchor_specs: list[dict] = []
 
     def html(self):
         html = self.network.generate_html()
@@ -80,6 +89,159 @@ class Graph:
                                 </body>
                             """
                             )
+
+        html = html.replace("</body>",
+                            f"""
+                                    <script>
+                                    (function () {{
+                                        const anchorSpecs = {json.dumps(self._anchor_specs)}
+
+                                        const anchorsByParent = new Map();
+
+                                        for (const anchor of anchorSpecs) {{
+                                            if (!anchorsByParent.has(anchor.parent)) {{
+                                                anchorsByParent.set(anchor.parent, []);
+                                            }}
+                                            anchorsByParent.get(anchor.parent).push(anchor.id);
+                                        }}
+
+                                        function getAnchorIds(parentIds) {{
+                                            return [...new Set(
+                                                parentIds.flatMap(
+                                                    parent => anchorsByParent.get(parent) || []
+                                                )
+                                            )];
+                                        }}
+
+                                        function syncAnchors() {{
+                                            if (typeof network === "undefined" || !network.body) {{
+                                                requestAnimationFrame(syncAnchors);
+                                                return;
+                                            }}
+
+                                            const parentIds = [...new Set(anchorSpecs.map(a => a.parent))];
+
+                                            const positions = network.getPositions(parentIds);
+                                            const updates = [];
+
+                                            for (const anchor of anchorSpecs) {{
+                                                const parent = positions[anchor.parent]
+                                                if (!parent) continue;
+
+                                                updates.push({{
+                                                    id: anchor.id,
+                                                    x: parent.x + anchor.dx,
+                                                    y: parent.y + anchor.dy
+                                                }})
+                                            }}
+
+                                            if (updates.length > 0) {{
+                                                network.body.data.nodes.update(updates);
+                                            }}
+
+                                            requestAnimationFrame(syncAnchors);
+                                        }}
+
+                                        let syncingSelection = false;
+
+                                        const userSelected = new Set();
+                                        const userSelectedEdges = new Set();
+
+                                        const hoveredParents = new Set();
+
+                                        let observedSelection = new Set(network.getSelectedNodes());
+
+                                        function syncSelection() {{
+                                            const requiredParents = new Set(hoveredParents);
+
+                                            for (const id of userSelected) {{
+                                                if (anchorsByParent.has(id)) {{
+                                                    requiredParents.add(id);
+                                                }}
+                                            }}
+
+                                            const desired = new Set(userSelected);
+
+                                            for (const id of getAnchorIds([...requiredParents])) {{
+                                                desired.add(id);
+                                            }}
+
+                                            syncingSelection = true;
+                                            try {{
+                                                network.setSelection({{
+                                                    nodes: [...desired],
+                                                    edges: [...userSelectedEdges]
+                                                }});
+
+                                                observedSelection = new Set(desired);
+                                            }} finally {{
+                                                syncingSelection = false;
+                                            }}
+                                        }}
+
+                                        function handleUserSelectionChange(params) {{
+                                            if (syncingSelection) return;
+
+                                            const current = new Set(params.nodes);
+
+                                            for (const id of current) {{
+                                                if (!observedSelection.has(id)) {{
+                                                    userSelected.add(id);
+                                                }}
+                                            }}
+
+                                            for (const id of observedSelection) {{
+                                                if (!current.has(id)) {{
+                                                    userSelected.delete(id);
+                                                }}
+                                            }}
+
+                                            observedSelection = current;
+                                            syncSelection();
+                                        }}
+
+                                        network.on("selectNode", handleUserSelectionChange);
+                                        network.on("deselectNode", handleUserSelectionChange);
+
+                                        network.on("hoverNode", function(params) {{
+                                            const parent = params.node;
+                                            if (!anchorsByParent.has(parent)) return;
+
+                                            hoveredParents.add(parent);
+                                            syncSelection();
+                                        }});
+
+                                        network.on("blurNode", function(params) {{
+                                            hoveredParents.delete(params.node);
+                                            syncSelection();
+                                        }});
+
+                                        network.on("selectEdge", function(params) {{
+                                            if (syncingSelection) return;
+
+                                            userSelectedEdges.clear();
+
+                                            for (const id of network.getSelectedEdges()) {{
+                                                userSelectedEdges.add(id);
+                                            }}
+                                        }});
+
+                                        network.on("deselectEdge", function(params) {{
+                                            if (syncingSelection) return;
+
+                                            userSelectedEdges.clear();
+
+                                            for (const id of network.getSelectedEdges()) {{
+                                                userSelectedEdges.add(id);
+                                            }}
+                                        }});
+
+                                        // Start continuous synchronization immediately
+                                        requestAnimationFrame(syncAnchors);
+                                    }})();
+                                    </script>
+                                    </body>
+                                    """)
 
         return html
 
@@ -200,6 +362,19 @@ class Graph:
                             },
 
                             "borderWidth": 2
+                        },
+                        
+                        "groups": {
+                            "anchor": {
+                                "font": {
+                                    "face": "monospace",
+                                    "size": 1
+                                },
+                                "color": {
+                                    "background": "#EF4444",
+                                    "border": "#991B1B"
+                                }
+                            }
                         }
                     }
                     """
@@ -208,7 +383,8 @@ class Graph:
         node_id = self._object_node_id(object_id)
 
         # Format label
-        lines = self._format_mapping_lines(list(enumerate(obj.values)))
+        items = list(enumerate(obj.values))
+        lines, anchors = self._mapping_layout(items)
 
         label = f"{obj.type}"
         if lines:
@@ -240,11 +416,14 @@ class Graph:
             font={"color": "#FFFFFF"}
         )
 
+        self._add_node_anchors(node_id, anchors)
+
     def add_mapped_node(self, object_id: ObjectID, obj: MappedObject) -> None:
         node_id = self._object_node_id(object_id)
 
         # Format label
-        lines = self._format_mapping_lines(list(obj.values.items()))
+        items = list(obj.values.items())
+        lines, anchors = self._mapping_layout(items)
 
         label = f"{obj.type}"
         if lines:
@@ -275,6 +454,8 @@ class Graph:
             color=color,
             font={"color": "#FFFFFF"}
         )
+
+        self._add_node_anchors(node_id, anchors)
 
     def add_function_node(self, object_id: ObjectID, obj: FunctionObject) -> None:
         node_id = self._object_node_id(object_id)
@@ -345,7 +526,8 @@ class Graph:
         node_id = "frame:global"
 
         # Format label
-        lines = self._format_mapping_lines(list(frame.bindings.items()))
+        items = list(frame.bindings.items())
+        lines, anchors = self._mapping_layout(items)
 
         label = f"Global Frame"
         if lines:
@@ -365,18 +547,20 @@ class Graph:
         )
 
         # Add bindings
-        for name, value in frame.bindings.items():
+        # for name, value in frame.bindings.items():
             # Inline values are included in labels, so we only check for references
-            if isinstance(value, ObjectID):
-                self._add_edge(source=node_id, value=value, label=name)
+        #     if isinstance(value, ObjectID):
+        #         self._add_edge(source=node_id, value=value, label=name)
+
+        self._add_node_anchors(node_id, anchors)
 
     def add_function_frames(self, frames: list[FunctionFrame]) -> None:
         for index, frame in enumerate(frames):
             node_id = f"frame:function:{index}"
 
             # Format label
-            lines = self._format_mapping_lines(list(
-                frame.arguments.items()) + list(frame.bindings.items()))
+            items = list(frame.arguments.items()) + list(frame.bindings.items())
+            lines, anchors = self._mapping_layout(items)
 
             label = f"{frame.name}"
             if lines:
@@ -395,7 +579,7 @@ class Graph:
                 margin=12
             )
 
-            # Add arguments
+            '''# Add arguments
             for name, value in frame.arguments.items():
                 # Inline values are included in labels, so we only check for references
                 if isinstance(value, ObjectID):
@@ -411,7 +595,96 @@ class Graph:
             if not isinstance(frame.return_value, Unset):
                 # Not implemented yet
                 self._add_edge(source=node_id, value=frame.return_value,
-                                    label="return", color="#DC2626")
+                                    label="return", color="#DC2626")'''
+
+            self._add_node_anchors(node_id, anchors)
+
+    def _mapping_layout(self, items: list[tuple[Value, Value]]) -> tuple[list[str], list[dict]]:
+        keys = [self._format_value(key) for key, _ in items]
+
+        values = [
+            "" if isinstance(value, ObjectID)
+            else self._format_value(value)
+            for _, value in items
+        ]
+
+        key_width = max((len(key) for key in keys), default=0)
+
+        value_width = max((
+            len("Object") if isinstance(value, ObjectID)
+            else len(self._format_value(value))
+            for _, value in items
+        ), default=0)
+
+        lines, anchors = [], []
+        total_lines = len(items) + 2
+
+        for row, ((key, value), key_text, value_text) in enumerate(
+                zip(items, keys, values)
+        ):
+            line = (
+                f"{key_text:>{key_width}}: "
+                f"{value_text:<{value_width}}"
+            )
+            lines.append(line)
+
+            line_index = row + 2
+
+            def offset_for(center_column: float) -> tuple[float, float]:
+                dx = (center_column - len(line) / 2) * self._char_width
+                dy = (line_index - (total_lines - 2) / 2) * self._line_height - 7
+                return dx, dy
+
+            # Reference is in key cell
+            if isinstance(key, ObjectID):
+                key_start = key_width - len(key_text)
+                dx, dy = offset_for(key_start + len(key_text) / 2)
+
+                anchors.append({
+                    "row": row,
+                    "role": "key",
+                    "target": key,
+                    "dx": dx,
+                    "dy": dy,
+                    "label": f"key in entry {row}"
+                })
+
+            # Reference is in value cell
+            if isinstance(value, ObjectID):
+                dx, dy = offset_for(key_width + 2 + value_width / 2)
+
+                anchors.append({
+                    "row": row,
+                    "role": "value",
+                    "target": value,
+                    "dx": dx,
+                    "dy": dy,
+                    "label": f"value in entry {row}"
+                })
+
+        return lines, anchors
+
+    def _add_node_anchors(self, parent_id: str, anchors: list[dict]) -> None:
+        for spec in anchors:
+            anchor_id = f"anchor:{parent_id}:{spec['role']}:{spec['row']}"
+
+            # Invisible, physics-free node; will be positioned in JavaScript
+            self.network.add_node(anchor_id, label="                                              ", shape="box",
+                              borderWidth=1, physics=False,
+                              group='anchor',
+                              x=0, y=0, title="", hidden=False, fixed=True)
+
+            self._anchor_specs.append({
+                "id": anchor_id,
+                "parent": parent_id,
+                "dx": spec["dx"],
+                "dy": spec["dy"]
+            })
+
+            target_id = self._object_node_id(spec["target"])
+
+            # Edge from the anchor to its reference
+            self.network.add_edge(anchor_id, target_id, title=f"{self._escape(spec['label'])} → Object #{spec['target']}")
 
     @staticmethod
     def _object_node_id(object_id: ObjectID) -> str:

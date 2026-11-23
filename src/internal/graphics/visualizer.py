@@ -32,16 +32,16 @@ class RuntimeVisualizer:
                     raise TypeError(f"Unknown object type: {type(obj)!r}")
 
         # Then, add edges
-        for object_id, obj in snapshot.objects.items():
-            if isinstance(obj, SequenceObject):
-                for index, value in enumerate(obj.values):
-                    if isinstance(value, ObjectID):
-                        label = f"[{index}]"
-                        self.graph.add_value_edge(object_id, label, value)
-            elif isinstance(obj, MappedObject):
-                for key, value in obj.values.items():
-                    if isinstance(value, ObjectID):
-                        self.graph.add_mapping_entry(object_id, key, value)
+        # for object_id, obj in snapshot.objects.items():
+        #     if isinstance(obj, SequenceObject):
+        #         for index, value in enumerate(obj.values):
+        #             if isinstance(value, ObjectID):
+        #                 label = f"[{index}]"
+        #                 self.graph.add_value_edge(object_id, label, value)
+        #     elif isinstance(obj, MappedObject):
+        #         for key, value in obj.values.items():
+        #             if isinstance(value, ObjectID):
+        #                 self.graph.add_mapping_entry(object_id, key, value)
 
             # FunctionObject and UnsupportedObject don't contain references
 
