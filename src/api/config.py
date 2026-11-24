@@ -49,6 +49,9 @@ class Config:
             # initialize config dictionary
             self.configOpts = {}
 
+            # global config
+            self.configOpts['debug'] = self.DEFAULTS['debug']
+
             # visualizer config
             self.configOpts['render_frames'] = self.DEFAULTS['render_frames']
 
@@ -68,18 +71,20 @@ class Config:
 
     # used to update configuration settings
     # ex. update(render_frames=True) would set render_frames to True
-    def update(self, debug: bool=None, render_frames: bool=None, max_scopes: int=None,
+    def update(self, sel_debug: bool=None, render_frames: bool=None, max_scopes: int=None,
                height: int=None, width: int=None,
                bg_color: str=None, font_color: str=None):
 
         # debug mode, not specific to a particular module
-        if type(debug) is bool:
-            self.configOpts['debug'] = debug
-            if debug:
-                print(f"debug input {debug} accepted.")
+        if type(sel_debug) is bool:
+            self.configOpts['debug'] = sel_debug
+            if sel_debug:
+                print(f"debug input {sel_debug} accepted.")
                 print(f"debug is set to: {self.configOpts['debug']}")
-        elif debug and debug is not None:
-            print(f"debug input {debug} rejected.")
+        elif self.configOpts['debug'] and sel_debug is not None:
+            print(f"debug input {sel_debug} rejected.")
+
+        debug = self.configOpts['debug'] # value for current debug state
 
         # visualizer configs
         # render_frames must be a boolean
