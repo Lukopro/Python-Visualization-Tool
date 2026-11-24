@@ -20,6 +20,7 @@ class Config:
         'render_frames': False,
         'render_functions': False,
         'render_classes': False,
+        'render_unsupported': False,
 
         # tracer defaults
         # steps back is an internal constant
@@ -58,6 +59,7 @@ class Config:
             self.configOpts['render_frames'] = self.DEFAULTS['render_frames']
             self.configOpts['render_functions'] = self.DEFAULTS['render_functions']
             self.configOpts['render_classes'] = self.DEFAULTS['render_classes']
+            self.configOpts['render_unsupported'] = self.DEFAULTS['render_unsupported']
 
             # tracer config
             self.configOpts['steps_back'] = self.DEFAULTS['steps_back']
@@ -78,6 +80,7 @@ class Config:
     def update(self, sel_debug: bool=None, render_frames: bool=None,
                render_functions: bool=None,
                render_classes: bool=None,
+               render_unsupported: bool=None,
                max_scopes: int=None,
                height: int=None, width: int=None,
                bg_color: str=None, font_color: str=None):
@@ -112,6 +115,7 @@ class Config:
         elif debug and render_functions is not None:
             print(f"render_functions input {render_functions} rejected.")
 
+        # render_classes must be a boolean
         if type(render_classes) is bool:
             self.configOpts['render_classes'] = render_classes
             if debug:
@@ -119,6 +123,15 @@ class Config:
                 print(f"render_classes is set to: {self.configOpts['render_classes']}")
         elif debug and render_classes is not None:
             print(f"render_classes input {render_classes} rejected.")
+
+        # render_unsupported must be a boolean
+        if type(render_unsupported) is bool:
+            self.configOpts['render_unsupported'] = render_unsupported
+            if debug:
+                print(f"render_unsupported input {render_unsupported} accepted.")
+                print(f"render_unsupported is set to: {self.configOpts['render_unsupported']}")
+        elif debug and render_unsupported is not None:
+            print(f"render_unsupported input {render_unsupported} rejected.")
 
         # tracer configs
         # max_scopes must be a positive integer
