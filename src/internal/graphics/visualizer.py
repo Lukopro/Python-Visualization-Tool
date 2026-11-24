@@ -16,6 +16,9 @@ class RuntimeVisualizer:
         # Clear graph, start fresh
         self.graph.reset_network()
 
+        show_classes: bool = self.config.get_opt('show_classes')
+        show_functions: bool = self.config.get_opt('show_functions')
+
         # First, add nodes
         for object_id, obj in snapshot.objects.items():
             # Filter object types and delegate
@@ -23,8 +26,12 @@ class RuntimeVisualizer:
                 case SequenceObject():
                     self.graph.add_sequence_node(object_id, obj)
                 case MappedObject():
+                    if not show_classes and "class:" in obj.type:
+                        continue
                     self.graph.add_mapped_node(object_id, obj)
                 case FunctionObject():
+                    if not show_functions:
+                        continue
                     self.graph.add_function_node(object_id, obj)
                 case UnsupportedObject():
                     self.graph.add_unsupported_node(object_id, obj)

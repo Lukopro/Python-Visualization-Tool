@@ -48,6 +48,7 @@ class Graph:
         html = html.replace("</body>",
                             """
                                 <button
+                                    id="physics-toggle"
                                     onclick="
                                         const newEnabled = !network.physics.options.enabled;
                                         network.setOptions({ 
@@ -75,9 +76,69 @@ class Graph:
                                         cursor: pointer;
                                     "
                                 >
-                                    Physics: ON
+                                    Placeholder
                                 </button>
+                                
+                                <script>
+                                    document.getElementById("physics-toggle").textContent = 
+                                        network.physics.options.enabled ? "Physics: ON" : "Physics: OFF";                                
+                                </script>
                                 </body>
+                            """)
+
+        html = html.replace("</body>",
+                            f"""
+                                    <script>
+                                    (function(){{
+                                        let updated = false;
+                                        
+                                        function setOptions() {{
+                                            if (updated) return;
+                                            updated = true;
+                                            
+                                            network.setOptions({{
+                                                "interaction": {{
+                                                    "hover": true,
+                                                    "navigationButtons": false,
+                                                    "keyboard": false,
+                                                    "multiselect": false,
+                                                    "selectConnectedEdges": true
+                                                }},
+                        
+                                                "layout": {{
+                                                    "hierarchical": {{
+                                                        "enabled": false
+                                                    }}
+                                                    "improvedLayout": true
+                                                }},
+                        
+                                                "physics": {{
+                                                    "solver": "forceAtlas2Based",
+                        
+                                                    "forceAtlas2Based": {{
+                                                        "gravitationalConstant": -40,
+                                                        "centralGravity": 0.01,
+                                                        "springLength": 60,
+                                                        "springConstant": 0.01,
+                                                        "damping": 0.4,
+                                                        "avoidOverlap": 1
+                                                    }},
+                        
+                                                    "stabilization": {{
+                                                        "enabled": true,
+                                                        "fit": false,
+                                                        "iterations": 500
+                                                    }}
+                                                }},
+                                            }});
+                                            
+                                            network.startSimulation();
+                                        }}
+                                        
+                                        network.once("afterDrawing", setOptions);
+                                    }})();
+                                    </script>
+                                    </body>
                             """
                             )
 
@@ -140,6 +201,19 @@ class Graph:
 
         return """
                     {
+                        "physics": {
+                            "enabled": true,
+                            "solver": "hierarchicalRepulsion",
+                            "hierarchicalRepulsion": {
+                                "centralGravity": 0.1,
+                                "springLength": 200,
+                                "springConstant": 0.01,
+                                "nodeDistance": 150,
+                                "damping": 0.3,
+                                "avoidOverlap": 1
+                            }
+                        },
+                        
                         "interaction": {
                             "hover": true,
                             "navigationButtons": false,
@@ -149,29 +223,20 @@ class Graph:
                         },
 
                         "layout": {
+                            "hierarchical": {
+                                "enabled": true,
+                                "direction": "LR",
+                                "sortMethod": "directed",
+                                "shakeTowards": "roots",
+                                "levelSeparation": 350,
+                                "nodeSpacing": 150,
+                                "treeSpacing": 200,
+                                "blockShifting": true,
+                                "edgeMinimization": true,
+                                "parentCentralization": true
+                            },
                             "improvedLayout": true
                         },
-
-                        "physics": {
-                            "enabled": true,
-                            "solver": "forceAtlas2Based",
-
-                            "forceAtlas2Based": {
-                                "gravitationalConstant": -40,
-                                "centralGravity": 0.01,
-                                "springLength": 60,
-                                "springConstant": 0.01,
-                                "damping": 0.4,
-                                "avoidOverlap": 1
-                            },
-
-                            "stabilization": {
-                                "enabled": true,
-                                "fit": false,
-                                "iterations": 500
-                            }
-                        },
-                        
 
                         "edges": {
                             "arrows": {
@@ -337,6 +402,10 @@ class Graph:
     def _add_edge(self, source: str, value: ObjectID, label: str, color: str | None = None) -> None:
         target = self._object_node_id(value)
 
+        # In case the target was never added due to config
+        if not self._has_node(target):
+            return
+
         hover_description = f"{self._escape(label)} → Object #{value}"
 
         self.network.add_edge(source, target, label=label, smooth=False, color=color, title=hover_description)
@@ -431,13 +500,15 @@ class Graph:
         # value is an inline value, format using str() cast
         return str(value)
 
-    @staticmethod
-    def _format_mapping_lines(items: list[tuple[Value, Value]]) -> list[str]:
+    def _format_mapping_lines(self, items: list[tuple[Value, Value]]) -> list[str]:
 
         # get formatted list of keys and values
         keys = []
         values = []
         for key, value in items:
+            if (type(value) is ObjectID
+                and not self._has_node(self._object_node_id(value))):
+                continue
             keys.append(Graph._format_value(key))
             values.append(Graph._format_value(value))
 
