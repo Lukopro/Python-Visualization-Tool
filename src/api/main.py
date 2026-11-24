@@ -65,6 +65,8 @@ def stop_auto():
 """
 debug: bool, toggles debug mode
 render_frames: bool, enables drawing of frames (function and global)
+render_functions: bool, enables drawing of function definitions
+render_classes: bool, enables drawing of class definitions
 max_scopes: int, how many scopes to draw (1 for only the current scope)
 height: int, height of the viewer window
 width: int, width of the viewer window
@@ -73,10 +75,18 @@ font_color: str, color of the font expressed in hex rgb string (ex. #FF0000)
 
 For default values, see config.py
 """
-def configure(debug: bool=None, render_frames: bool=None, max_scopes: int=None,
-              height: int=None, width: int=None, bg_color: str=None, font_color: str=None):
+def configure(debug: bool=None,
+              render_frames: bool=None,
+              render_functions: bool=None,
+              render_classes: bool=None,
+              max_scopes: int=None,
+              height: int=None,
+              width: int=None,
+              bg_color: str=None,
+              font_color: str=None):
     # get the singleton config object and call update on it
-    Config().update(sel_debug=debug, render_frames=render_frames, max_scopes=max_scopes,
+    Config().update(sel_debug=debug, render_frames=render_frames, render_functions=render_functions,
+                    render_classes=render_classes, max_scopes=max_scopes,
                     height=height, width=width, bg_color=bg_color, font_color=font_color)
 
 def _internal_update():
