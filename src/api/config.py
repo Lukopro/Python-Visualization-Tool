@@ -18,6 +18,8 @@ class Config:
         # visualizer defaults
         # whether to render function and global frames in visualization
         'render_frames': False,
+        'render_functions': False,
+        'render_classes': False,
 
         # tracer defaults
         # steps back is an internal constant
@@ -49,8 +51,13 @@ class Config:
             # initialize config dictionary
             self.configOpts = {}
 
+            # global config
+            self.configOpts['debug'] = self.DEFAULTS['debug']
+
             # visualizer config
             self.configOpts['render_frames'] = self.DEFAULTS['render_frames']
+            self.configOpts['render_functions'] = self.DEFAULTS['render_functions']
+            self.configOpts['render_classes'] = self.DEFAULTS['render_classes']
 
             # tracer config
             self.configOpts['steps_back'] = self.DEFAULTS['steps_back']
@@ -68,18 +75,23 @@ class Config:
 
     # used to update configuration settings
     # ex. update(render_frames=True) would set render_frames to True
-    def update(self, debug: bool=None, render_frames: bool=None, max_scopes: int=None,
+    def update(self, sel_debug: bool=None, render_frames: bool=None,
+               render_functions: bool=None,
+               render_classes: bool=None,
+               max_scopes: int=None,
                height: int=None, width: int=None,
                bg_color: str=None, font_color: str=None):
 
         # debug mode, not specific to a particular module
-        if type(debug) is bool:
-            self.configOpts['debug'] = debug
-            if debug:
-                print(f"debug input {debug} accepted.")
+        if type(sel_debug) is bool:
+            self.configOpts['debug'] = sel_debug
+            if sel_debug:
+                print(f"debug input {sel_debug} accepted.")
                 print(f"debug is set to: {self.configOpts['debug']}")
-        elif debug and debug is not None:
-            print(f"debug input {debug} rejected.")
+        elif self.configOpts['debug'] and sel_debug is not None:
+            print(f"debug input {sel_debug} rejected.")
+
+        debug = self.configOpts['debug'] # value for current debug state
 
         # visualizer configs
         # render_frames must be a boolean
@@ -90,6 +102,23 @@ class Config:
                 print(f"render_frames is set to: {self.configOpts['render_frames']}")
         elif debug and render_frames is not None:
             print(f"render_frames input {render_frames} rejected.")
+
+        # render_functions must be a boolean
+        if type(render_functions) is bool:
+            self.configOpts['render_functions'] = render_functions
+            if debug:
+                print(f"render_functions input {render_functions} accepted.")
+                print(f"render_functions is set to: {self.configOpts['render_functions']}")
+        elif debug and render_functions is not None:
+            print(f"render_functions input {render_functions} rejected.")
+
+        if type(render_classes) is bool:
+            self.configOpts['render_classes'] = render_classes
+            if debug:
+                print(f"render_classes input {render_classes} accepted.")
+                print(f"render_classes is set to: {self.configOpts['render_classes']}")
+        elif debug and render_classes is not None:
+            print(f"render_classes input {render_classes} rejected.")
 
         # tracer configs
         # max_scopes must be a positive integer
